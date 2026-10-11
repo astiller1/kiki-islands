@@ -1,0 +1,1283 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kiki's Word Islands</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap">
+<style>
+/* Layout: one-screen app, mobile portrait first; a chunky sea-and-islands toy world, big tap targets, icon-led (kids can't read yet) */
+:root{
+  --bg:#BCE9F8; --sea:#8FD9F2; --sea2:#45B0DF; --water1:#86DBF6; --water2:#2C8CCF;
+  --sand:#FFE3A1; --sun:#FFC93C; --coral:#FF6B5B; --go:#2FBF71; --ok:#2FB565; --okbg:#DDF7E6;
+  --pitch:#4DB356; --wood:#C98B4E;
+  --ink:#1F2E4A; --muted:#55657F; --card:#FFFFFF; --card2:#F2FAFE;
+  --line:rgba(31,46,74,.14); --shadow:rgba(31,46,74,.20); --veil:rgba(15,30,55,.38);
+  --font:'Baloo 2','Comic Sans MS','Trebuchet MS',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E2240; --sea:#174773; --sea2:#0B2C52; --water1:#1F659A; --water2:#0C2E58;
+  --sand:#C7A762; --okbg:#1E4A35; --pitch:#2F8239; --wood:#91613A;
+  --ink:#EEF6FF; --muted:#A9BCD6; --card:#1D3659; --card2:#22416B;
+  --line:rgba(238,246,255,.18); --shadow:rgba(0,0,0,.45); --veil:rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E2240; --sea:#174773; --sea2:#0B2C52; --water1:#1F659A; --water2:#0C2E58;
+  --sand:#C7A762; --okbg:#1E4A35; --pitch:#2F8239; --wood:#91613A;
+  --ink:#EEF6FF; --muted:#A9BCD6; --card:#1D3659; --card2:#22416B;
+  --line:rgba(238,246,255,.18); --shadow:rgba(0,0,0,.45); --veil:rgba(0,0,0,.5); color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden;
+  -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+button:focus-visible{outline:4px solid var(--sun);outline-offset:3px}
+#app{height:100%;display:flex;flex-direction:column}
+.screen{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;width:100%;max-width:760px;margin:0 auto;padding-inline:16px;padding-block:12px 16px}
+
+/* buttons */
+.icon-btn{width:54px;height:54px;flex:none;border-radius:18px;background:var(--card);box-shadow:0 5px 0 var(--shadow);font-size:27px;display:grid;place-items:center;transition:transform .1s}
+.icon-btn:active,.tile:active,.choice:active,.big-btn:active{transform:translateY(3px)}
+.bar{display:flex;align-items:center;gap:10px;min-height:54px}
+.bar .sp{flex:1}
+.chips{flex:1;display:flex;justify-content:center;gap:6px}
+#players{flex:none}
+[hidden]{display:none!important}
+.chip{width:46px;height:46px;border-radius:50%;background:var(--pc);display:grid;place-items:center;font-size:28px;box-shadow:0 0 0 3px var(--card);transition:transform .2s,opacity .2s}
+.chip.dim{opacity:.45;transform:scale(.85)}
+.chip.act{transform:scale(1.12);box-shadow:0 0 0 4px var(--sun)}
+
+/* kiki */
+.kiki-row{display:flex;align-items:center;gap:10px}
+.kiki{font-size:58px;line-height:1;animation:bob 2.4s ease-in-out infinite;flex:none}
+.bubble{position:relative;background:var(--card);border-radius:22px;padding:10px 16px;font-weight:700;font-size:21px;line-height:1.25;box-shadow:0 4px 0 var(--shadow);min-width:0}
+.bubble::before{content:"";position:absolute;left:-10px;top:50%;margin-top:-10px;border:10px solid transparent;border-left:0;border-right-color:var(--card)}
+
+/* start */
+.start{align-items:center;justify-content:center;text-align:center;gap:18px;position:relative}
+.logo{margin:0;font-weight:800;line-height:.9;font-size:clamp(44px,13vw,84px);letter-spacing:-.01em;text-wrap:balance}
+.logo span{display:block;color:var(--coral);transform:rotate(-3deg)}
+.start-isle{position:relative;font-size:clamp(90px,30vw,150px);line-height:1}
+.start-isle .kiki{position:absolute;left:50%;top:-38%;font-size:.55em;margin-left:-.3em}
+.play{width:124px;height:124px;border-radius:50%;background:var(--go);color:#fff;font-size:56px;box-shadow:0 9px 0 #1C8A4F,0 0 0 8px var(--card);display:grid;place-items:center;padding-left:10px;animation:pulse 1.8s ease-in-out infinite}
+.play:active{transform:translateY(5px);box-shadow:0 3px 0 #1C8A4F,0 0 0 8px var(--card)}
+.note-de{font-size:15px;color:var(--muted);max-width:34ch;margin:0;line-height:1.35;font-weight:600}
+.warn{background:var(--card);border-radius:16px;padding:10px 14px;font-size:15px;line-height:1.35;color:var(--ink);box-shadow:0 0 0 3px var(--coral);font-weight:600;text-align:left}
+
+/* profiles */
+.who{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:460px;width:100%;margin:8px auto 0}
+.who-av,.who-add,.av-pick{aspect-ratio:1;border-radius:50%;display:grid;place-items:center;position:relative;transition:transform .15s}
+.who-av,.av-pick{background:var(--pc);font-size:clamp(46px,14vw,70px);box-shadow:0 6px 0 var(--shadow),0 0 0 5px var(--card)}
+.who-av small{position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);background:var(--card);border-radius:20px;padding:0 10px;font-size:15px;font-weight:800;white-space:nowrap;box-shadow:0 2px 0 var(--shadow)}
+.who-av.sel{box-shadow:0 6px 0 var(--shadow),0 0 0 7px var(--sun);transform:scale(1.06)}
+.who-av.sel::after{content:"✓";position:absolute;top:-6px;right:-6px;width:34px;height:34px;border-radius:50%;background:var(--go);color:#fff;font-size:22px;display:grid;place-items:center;font-weight:800}
+.who-add{border:5px dashed var(--line);font-size:52px;color:var(--muted);font-weight:700}
+.who-add.call{animation:glow 1s ease-in-out infinite}
+.team-btn{align-self:center;margin-top:18px;display:flex;align-items:center;gap:10px;background:var(--card);border-radius:40px;padding:10px 24px 10px 14px;box-shadow:0 5px 0 var(--shadow);font-size:22px;font-weight:800}
+.team-btn span:first-child{font-size:38px}
+.team-btn.on{box-shadow:0 5px 0 var(--shadow),0 0 0 5px var(--sun)}
+.hold{position:relative;overflow:hidden;font-size:22px}
+.hold .fill{position:absolute;left:0;bottom:0;height:6px;width:0;background:var(--coral)}
+.hold.holding .fill{width:100%;transition:width 1.5s linear}
+.hold-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--muted);font-weight:700}
+
+/* map */
+.sea{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;border-radius:30px;padding:26px 18px 40px;display:flex;flex-direction:column;gap:6px;
+  background:radial-gradient(circle at 20% 10%,rgba(255,255,255,.25) 0 2px,transparent 3px) 0 0/38px 38px,linear-gradient(var(--sea),var(--sea2))}
+.isle{position:relative;width:min(64%,280px);aspect-ratio:1.2;border-radius:46% 54% 42% 58%/55% 45% 55% 45%;background:var(--isl);
+  box-shadow:0 0 0 12px var(--sand),0 16px 0 12px rgba(0,0,0,.14);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;color:#1F2E4A;margin-block:14px;flex:none;transition:transform .15s}
+.isle:active{transform:scale(.96)}
+.isle.l{align-self:flex-start;margin-left:6%}
+.isle.r{align-self:flex-end;margin-right:6%}
+.isle-e{font-size:clamp(54px,16vw,80px);line-height:1}
+.isle-n{font-weight:800;font-size:16px;line-height:1.1;background:rgba(255,255,255,.75);border-radius:20px;padding:1px 10px;margin-top:4px}
+.isle-s{font-size:18px;letter-spacing:2px;margin-top:2px}
+.boat{position:absolute;right:-18px;top:-14px;font-size:40px;animation:bob 2s ease-in-out infinite}
+.path{height:26px;width:50%;align-self:center;border-top:5px dotted rgba(255,255,255,.7);border-radius:50%;flex:none}
+
+/* island */
+.isle-title{flex:1;text-align:center;font-weight:800;font-size:21px;line-height:1.05}
+.isle-title small{display:block;font-size:14px;color:var(--muted);font-weight:700}
+.hero{border-radius:30px;background:var(--isl);padding:18px 16px 12px;display:flex;flex-direction:column;align-items:center;color:#1F2E4A;box-shadow:0 0 0 8px var(--sand)}
+.hero-scene{font-size:clamp(54px,17vw,90px);line-height:1.05;letter-spacing:6px;text-align:center}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:6px}
+.tile{background:var(--card);border-radius:26px;padding:16px 8px 10px;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:0 6px 0 var(--shadow)}
+.tile-e{font-size:clamp(46px,14vw,64px);line-height:1}
+.tile-n{font-weight:800;font-size:17px;color:var(--muted)}
+.tile.first{box-shadow:0 6px 0 var(--shadow),0 0 0 5px var(--sun)}
+
+/* game shell */
+.gbar{display:flex;align-items:center;gap:10px}
+.prog{flex:1;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
+.dot{width:16px;height:16px;border-radius:50%;background:var(--line);transition:transform .3s,background .3s}
+.dot.on{background:var(--sun);transform:scale(1.25);box-shadow:0 0 0 2px var(--card)}
+.prompt{text-align:center;font-weight:700;font-size:18px;color:var(--muted);min-height:1.4em;line-height:1.3}
+.stage{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;justify-content:center;gap:14px}
+.stage.top{justify-content:flex-start}
+.replay{background:var(--sun);color:#1F2E4A}
+
+/* choices */
+.choices{display:grid;gap:14px;grid-template-columns:repeat(2,1fr);width:100%;max-width:min(520px,62vh);margin:0 auto}
+.choices.n3{grid-template-columns:repeat(3,1fr);max-width:min(640px,96vh)}
+.choice{background:var(--card);border-radius:28px;aspect-ratio:1;display:grid;place-items:center;box-shadow:0 6px 0 var(--shadow);transition:transform .15s,background .2s;position:relative}
+.choice.right{background:var(--okbg);box-shadow:0 6px 0 var(--shadow),0 0 0 5px var(--ok);animation:pop .4s}
+.v-emoji{font-size:clamp(56px,17vw,104px);line-height:1}
+.n3 .v-emoji{font-size:clamp(44px,12vw,84px)}
+.v-num{display:flex;flex-direction:column;align-items:center;gap:6px}
+.v-num b{font-size:clamp(58px,17vw,104px);line-height:.85;font-weight:800;color:var(--nc)}
+.n3 .v-num b{font-size:clamp(46px,13vw,84px)}
+.pips{display:grid;grid-template-columns:repeat(5,9px);gap:4px}
+.pips i{width:9px;height:9px;border-radius:50%;background:var(--nc)}
+.v-color{width:68%;aspect-ratio:1;border-radius:58% 42% 50% 50%/48% 56% 44% 52%;background:var(--c);
+  box-shadow:inset -6px -8px 0 rgba(0,0,0,.14),inset 6px 6px 0 rgba(255,255,255,.35),0 0 0 3px var(--line)}
+.wobble{animation:wobble .45s}
+.hint{animation:glow 1s ease-in-out infinite}
+
+/* explore */
+.ex-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;overflow-y:auto;align-content:start;padding:4px 4px 12px;min-height:0}
+.ex-grid .choice{border-radius:22px}
+.ex-grid .v-emoji{font-size:clamp(40px,12vw,70px)}
+.ex-grid .v-num b{font-size:clamp(40px,12vw,70px)}
+.ex-pop{position:fixed;inset:0;z-index:40;background:var(--veil);display:grid;place-items:center;padding:24px;animation:fade .2s}
+.ex-card{background:var(--card);border-radius:36px;width:min(86vw,420px);padding:28px 20px 22px;display:flex;flex-direction:column;align-items:center;gap:12px;box-shadow:0 10px 0 var(--shadow);animation:popin .35s}
+.ex-card .v-emoji{font-size:clamp(110px,38vw,180px)}
+.ex-card .v-num b{font-size:clamp(110px,38vw,170px)}
+.ex-card .pips{grid-template-columns:repeat(5,16px);gap:7px}
+.ex-card .pips i{width:16px;height:16px}
+.ex-card .v-color{width:62%}
+.ex-word{font-size:40px;font-weight:800;line-height:1}
+.ex-say{font-size:19px;font-weight:600;color:var(--muted);text-align:center}
+.ex-extra{font-size:54px;line-height:1}
+
+/* count */
+.pitch{position:relative;flex:1;min-height:250px;border-radius:28px;border:5px solid rgba(255,255,255,.65);
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.07) 0 44px,transparent 44px 88px),var(--pitch)}
+.thing{position:absolute;transform:translate(-50%,-50%);font-size:clamp(42px,12vw,66px);line-height:1;transition:transform .2s}
+.thing.done{transform:translate(-50%,-50%) scale(1.12)}
+.thing.done::after{content:attr(data-n);position:absolute;top:-8px;right:-14px;width:32px;height:32px;border-radius:50%;background:var(--sun);color:#1F2E4A;font-size:20px;font-weight:800;display:grid;place-items:center;box-shadow:0 2px 0 rgba(0,0,0,.2)}
+.thing.flash{transform:translate(-50%,-50%) scale(1.4)}
+.nums .choice{aspect-ratio:1.3}
+.v-digit{font-size:clamp(46px,13vw,70px);font-weight:800;line-height:1}
+
+/* kick */
+.field{flex:1;min-height:330px;display:flex;flex-direction:column;justify-content:space-between;border-radius:28px;padding:18px 14px 12px;position:relative;overflow:hidden;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.07) 0 44px,transparent 44px 88px),var(--pitch);border:5px solid rgba(255,255,255,.65)}
+.goals{display:flex;gap:10px;justify-content:center}
+.goal{flex:1;max-width:140px;aspect-ratio:1.15;border:7px solid #fff;border-bottom:0;border-radius:12px 12px 0 0;display:grid;place-items:center;
+  background:repeating-linear-gradient(45deg,rgba(255,255,255,.4) 0 2px,transparent 2px 12px),repeating-linear-gradient(-45deg,rgba(255,255,255,.4) 0 2px,transparent 2px 12px)}
+.goal b{font-size:clamp(40px,12vw,68px);font-weight:800;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.3);line-height:1}
+.goal.scored{animation:netshake .5s}
+.kicker{display:flex;justify-content:center;align-items:flex-end;gap:2px;font-size:58px;line-height:1}
+.ball{display:inline-block;font-size:50px}
+
+/* fishing */
+.water{flex:1;min-height:330px;position:relative;overflow:hidden;border-radius:28px;background:linear-gradient(var(--water1),var(--water2))}
+.water::before{content:"";position:absolute;inset:0;background:radial-gradient(circle,rgba(255,255,255,.35) 0 3px,transparent 4px) 0 0/60px 70px;opacity:.5;animation:rise 8s linear infinite}
+.fish{position:absolute;left:0;top:0;width:clamp(86px,25vw,124px);touch-action:none;will-change:transform}
+.fish .fl{display:block}
+.fish .fl.r{transform:scaleX(-1)}
+.fish svg{display:block;width:100%;height:auto}
+.fish.wig svg{animation:wiggle .35s 3}
+.fish.hint svg{filter:drop-shadow(0 0 8px var(--sun)) drop-shadow(0 0 4px var(--sun))}
+.bucket{position:absolute;right:10px;bottom:6px;font-size:46px;line-height:1}
+.seabed{position:absolute;left:12px;bottom:4px;font-size:30px;letter-spacing:8px;opacity:.9}
+
+/* memory */
+.mem{display:grid;gap:10px;grid-template-columns:repeat(var(--cols),1fr);width:100%;max-width:min(520px,62vh);margin:0 auto}
+.card{aspect-ratio:3/4;perspective:700px}
+.card-in{position:relative;display:block;width:100%;height:100%;transition:transform .4s;transform-style:preserve-3d}
+.card.up .card-in{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:18px;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:grid;place-items:center;box-shadow:0 5px 0 var(--shadow)}
+.face.back{background:radial-gradient(circle,rgba(255,255,255,.35) 0 4px,transparent 5px) 0 0/22px 22px,var(--isl);font-size:clamp(30px,9vw,48px)}
+.face.front{background:var(--card);transform:rotateY(180deg)}
+.card.matched .face.front{box-shadow:0 5px 0 var(--shadow),0 0 0 4px var(--ok)}
+.mem .v-emoji{font-size:clamp(34px,10vw,62px)}
+.mem .v-color{width:72%}
+
+/* dance */
+.dance{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;position:relative}
+.dance-icon{font-size:clamp(120px,40vw,200px);line-height:1}
+.dance-icon.pop{animation:popin .4s}
+.dancer{font-size:62px;line-height:1}
+.music .dancer{animation:jump .5s ease-in-out infinite}
+.notes{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s}
+.music .notes{opacity:1}
+.notes span{position:absolute;font-size:34px;animation:floatup 2s linear infinite}
+.go.a-jump{animation:jump .5s ease-in-out infinite}
+.go.a-spin{animation:spin 1.1s linear infinite}
+.go.a-shake{animation:shake .3s linear infinite}
+.go.a-tilt{animation:tilt 1s ease-in-out infinite}
+.go.a-grow{animation:grow 1s ease-in-out infinite}
+.go.a-wave{animation:wave .6s ease-in-out infinite}
+.go.a-bounce{animation:bounce .6s ease-in-out infinite}
+
+/* shop */
+.shop{flex:1;display:flex;flex-direction:column;gap:12px;overflow:hidden;justify-content:center}
+.cust{display:flex;align-items:center;justify-content:center;gap:10px}
+.cust-e{font-size:clamp(76px,24vw,110px);line-height:1;display:inline-block;transition:transform .6s ease-in}
+.cust-e.happy{animation:jump .4s 2}
+.cust-e.bye{transform:translateX(130vw)}
+.say-btn{background:var(--card);border-radius:24px;padding:12px 18px;font-size:34px;box-shadow:0 4px 0 var(--shadow)}
+.counter{display:flex;align-items:center;gap:10px;background:var(--wood);border-radius:20px;padding:10px;min-height:104px;box-shadow:0 8px 0 rgba(0,0,0,.2)}
+.on-counter{flex:1;display:flex;flex-wrap:wrap;gap:2px;align-content:center;min-height:80px}
+.on-counter button{font-size:clamp(34px,10vw,48px);line-height:1;animation:popin .25s}
+.bell{width:76px;height:76px;flex:none;border-radius:50%;background:var(--card);font-size:42px;box-shadow:0 5px 0 var(--shadow)}
+.bell.ready{animation:glow 1.1s ease-in-out infinite}
+.shelf{display:grid;gap:12px;grid-template-columns:repeat(var(--k),1fr);width:100%;max-width:520px;margin:0 auto}
+.shelf .choice{aspect-ratio:1;border-radius:22px}
+.shelf .v-emoji{font-size:clamp(40px,12vw,70px)}
+
+/* overlays */
+.turn{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--veil);animation:fade .2s}
+.turn-av{width:min(56vw,220px);aspect-ratio:1;border-radius:50%;background:var(--pc);display:grid;place-items:center;font-size:min(30vw,120px);box-shadow:0 0 0 10px var(--card);animation:popin .4s}
+.confetti{position:fixed;top:-24px;width:10px;height:16px;z-index:60;pointer-events:none;border-radius:3px;animation:fall linear forwards}
+
+/* end */
+.end{align-items:center;justify-content:center;text-align:center;gap:22px}
+.sticker{width:min(52vw,210px);aspect-ratio:1;border-radius:34px;background:var(--card);border:9px solid #fff;box-shadow:0 10px 0 var(--shadow);display:grid;place-items:center;animation:stickin .8s cubic-bezier(.3,1.6,.5,1) both}
+.end-avs{display:flex;gap:10px;justify-content:center}
+.end-btns{display:flex;gap:16px;justify-content:center}
+.big-btn{width:84px;height:84px;border-radius:28px;background:var(--card);font-size:42px;box-shadow:0 6px 0 var(--shadow);display:grid;place-items:center}
+.big-btn.main{background:var(--go);box-shadow:0 6px 0 #1C8A4F}
+
+/* album */
+.album{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:18px;padding-bottom:20px}
+.album h2{margin:0 0 8px;font-size:20px;display:flex;align-items:center;gap:8px}
+.album h2 small{margin-left:auto;color:var(--muted);font-size:16px}
+.stks{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stk{aspect-ratio:1;border-radius:18px;background:var(--card);border:4px solid #fff;box-shadow:0 4px 0 var(--shadow);display:grid;place-items:center;position:relative}
+.stk:nth-child(3n){transform:rotate(-3deg)} .stk:nth-child(3n+1){transform:rotate(2deg)}
+.stk.no{opacity:.32;filter:grayscale(1);border:3px dashed var(--line);box-shadow:none;transform:none}
+.stk .v-emoji,.stk .v-num b{font-size:clamp(28px,9vw,50px)}
+.stk .pips{display:none}
+.stk .v-color{width:62%}
+.stk em{position:absolute;right:-6px;top:-8px;background:var(--coral);color:#fff;border-radius:12px;font-size:13px;font-style:normal;font-weight:800;padding:0 7px}
+
+/* parents */
+.parents{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-bottom:24px;user-select:text;-webkit-user-select:text}
+.parents h1{margin:0;font-size:26px}
+.parents h2{margin:0 0 6px;font-size:19px}
+.parents p,.parents li{font-family:system-ui,sans-serif;font-size:15px;line-height:1.5;margin:0;max-width:65ch}
+.parents ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.pbox{background:var(--card);border-radius:20px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.prow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.prow label{font-family:system-ui,sans-serif;font-size:15px;font-weight:600}
+.parents select,.parents input[type=range]{font:inherit;font-size:15px;max-width:100%;min-width:0;flex:1}
+.parents select{padding:8px;border-radius:10px;border:2px solid var(--line);background:var(--card2);color:var(--ink)}
+.pbtn{background:var(--card2);border:2px solid var(--line);border-radius:12px;padding:6px 14px;font-weight:700;font-size:16px}
+.pbtn.on{background:var(--sun);color:#1F2E4A;border-color:var(--sun)}
+.pbtn.danger{color:var(--coral);border-color:var(--coral)}
+.pc-head{display:flex;align-items:center;gap:12px}
+.pc-head b{font-size:20px}
+.pc-head small{display:block;color:var(--muted);font-family:system-ui,sans-serif;font-size:14px}
+.pc-av{width:50px;height:50px;border-radius:50%;background:var(--pc);display:grid;place-items:center;font-size:30px;flex:none}
+.pc-isl-h{display:flex;justify-content:space-between;font-weight:700;font-size:15px}
+.bar-m{height:8px;border-radius:8px;background:var(--line);overflow:hidden;margin:3px 0 6px}
+.bar-m i{display:block;height:100%;background:var(--go)}
+.words{display:flex;flex-wrap:wrap;gap:5px}
+.w{font-family:system-ui,sans-serif;font-size:13px;border-radius:10px;padding:1px 8px;font-weight:600}
+.w.new{background:var(--line);color:var(--muted)}
+.w.learn{background:#FFE08A;color:#5A4300}
+.w.ok{background:#BFEFCF;color:#145A2F}
+
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-8px) rotate(3deg)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+@keyframes wobble{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px) rotate(-4deg)}40%{transform:translateX(9px) rotate(3deg)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes popin{0%{transform:scale(.3);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+@keyframes glow{0%,100%{box-shadow:0 6px 0 var(--shadow),0 0 0 4px var(--sun)}50%{box-shadow:0 6px 0 var(--shadow),0 0 0 11px var(--sun)}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+@keyframes jump{0%,100%{transform:translateY(0)}50%{transform:translateY(-26px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes shake{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+@keyframes tilt{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(12deg) translateY(-6px)}}
+@keyframes grow{0%,100%{transform:scale(1)}50%{transform:scale(1.22)}}
+@keyframes wave{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(20deg)}}
+@keyframes bounce{0%,100%{transform:scale(1,1)}50%{transform:scale(1.1,.9) translateY(6px)}}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg)}75%{transform:rotate(12deg)}}
+@keyframes netshake{0%,100%{transform:scale(1)}30%{transform:scale(1.1,1.05)}60%{transform:scale(.97)}}
+@keyframes stickin{0%{transform:scale(0) rotate(-40deg)}100%{transform:scale(1) rotate(-6deg)}}
+@keyframes floatup{0%{transform:translateY(0);opacity:0}20%{opacity:1}100%{transform:translateY(-160px);opacity:0}}
+@keyframes rise{to{background-position:0 -700px}}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+@media (min-width:700px){
+  .who{grid-template-columns:repeat(4,1fr);max-width:620px}
+  .tiles{grid-template-columns:repeat(4,1fr)}
+  .stks{grid-template-columns:repeat(6,1fr)}
+  .ex-grid{grid-template-columns:repeat(4,1fr)}
+}
+</style>
+
+<div id="app"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- content ---------- */
+const NUMW = ['one','two','three','four','five','six','seven','eight','nine','ten'];
+const NUMC = ['#FF5A4E','#FF9F1C','#2EB872','#2D9CDB','#9B5DE5','#F15BB5','#FF5A4E','#FF9F1C','#2EB872','#2D9CDB'];
+
+const ISLANDS = [
+  { id:'football', kind:'number', e:'⚽', en:'Football Island', de:'Zahlen 1–10', bg:'#8EE07A', scene:'🥅⚽👟', start:5,
+    hello:"Welcome to Football Island! Let's count!", games:['explore','count','kick','find'],
+    items: NUMW.map((en,i)=>({ id:String(i+1), en, n:i+1,
+      say: i<5 ? `${en[0].toUpperCase()+en.slice(1)}! ${NUMW.slice(0,i+1).join(', ')}.` : `${en[0].toUpperCase()+en.slice(1)}!` })) },
+  { id:'ocean', kind:'color', e:'🐠', en:'Ocean Island', de:'Farben', bg:'#7FD8F7', scene:'🐠🐙🐚', start:4,
+    hello:'Welcome to Ocean Island! So many colors!', games:['explore','fishing','find','memory'],
+    items:[
+      {id:'red',en:'red',c:'#E8413B',x:'🍓',say:'Red, like a strawberry!'},
+      {id:'blue',en:'blue',c:'#2F7DE1',x:'🌊',say:'Blue, like the sea!'},
+      {id:'yellow',en:'yellow',c:'#FFD23A',x:'🍌',say:'Yellow, like a banana!'},
+      {id:'green',en:'green',c:'#3DBA5A',x:'🐸',say:'Green, like a frog!'},
+      {id:'pink',en:'pink',c:'#FF7EB6',x:'🦩',say:'Pink, like a flamingo!'},
+      {id:'orange',en:'orange',c:'#FF8A1F',x:'🍊',say:'Orange, like an orange!'},
+      {id:'purple',en:'purple',c:'#8E4FD8',x:'🍇',say:'Purple, like grapes!'},
+      {id:'white',en:'white',c:'#FFFFFF',x:'⛄',say:'White, like snow!'},
+      {id:'black',en:'black',c:'#262626',x:'🐧',say:'Black and white, like a penguin!'},
+      {id:'brown',en:'brown',c:'#8B5A2B',x:'🧸',say:'Brown, like a teddy bear!'} ] },
+  { id:'farm', kind:'noun', e:'🦄', en:'Unicorn Farm', de:'Tiere', bg:'#FFB8DD', scene:'🐱🦄🐮', start:4,
+    hello:'Welcome to Unicorn Farm! Look at the animals!', games:['explore','find','memory'],
+    items:[
+      {id:'cat',en:'cat',e:'🐱',say:'The cat says meow!'},
+      {id:'dog',en:'dog',e:'🐶',say:'The dog says woof woof!'},
+      {id:'fish',en:'fish',e:'🐟',say:'The fish can swim!'},
+      {id:'unicorn',en:'unicorn',e:'🦄',say:'The unicorn is magic!'},
+      {id:'horse',en:'horse',e:'🐴',say:'The horse says neigh!'},
+      {id:'cow',en:'cow',e:'🐮',say:'The cow says moo!'},
+      {id:'pig',en:'pig',e:'🐷',say:'The pig says oink oink!'},
+      {id:'duck',en:'duck',e:'🦆',say:'The duck says quack!'},
+      {id:'rabbit',en:'rabbit',e:'🐰',say:'The rabbit can hop!'},
+      {id:'sheep',en:'sheep',e:'🐑',say:'The sheep says baa!'},
+      {id:'chicken',en:'chicken',e:'🐔',say:'The chicken says cluck cluck!'},
+      {id:'frog',en:'frog',e:'🐸',say:'The frog can jump!'} ] },
+  { id:'ballet', kind:'noun', e:'🩰', en:'Ballet Island', de:'Körper & Bewegung', bg:'#CDB4FF', scene:'💃🩰🎵', start:4,
+    hello:"Welcome to Ballet Island! Let's move!", games:['explore','dance','find'],
+    items:[
+      {id:'nose',en:'nose',e:'👃',cmd:'Touch your nose!'},
+      {id:'eyes',en:'eyes',e:'👀',pl:1,cmd:'Close your eyes!'},
+      {id:'mouth',en:'mouth',e:'👄',cmd:'Open your mouth!'},
+      {id:'ear',en:'ear',e:'👂',cmd:'Touch your ear!'},
+      {id:'hand',en:'hand',e:'✋',cmd:'Wave your hand!'},
+      {id:'foot',en:'foot',e:'🦶',cmd:'Stamp your foot!'},
+      {id:'arm',en:'arm',e:'💪',cmd:'Lift your arm!'},
+      {id:'leg',en:'leg',e:'🦵',cmd:'Lift your leg!'},
+      {id:'teeth',en:'teeth',e:'🦷',pl:1,cmd:'Show me your teeth!'} ] },
+  { id:'market', kind:'noun', e:'🍓', en:'Market Island', de:'Essen & Einkaufen', bg:'#FFD07A', scene:'🍎🧺🍌', start:4,
+    hello:'Welcome to Market Island! Are you hungry?', games:['explore','find','shop','memory'],
+    items:[
+      {id:'apple',en:'apple',pl:0,p:'apples',e:'🍎',cnt:1,say:'I like apples!'},
+      {id:'banana',en:'banana',p:'bananas',e:'🍌',cnt:1,say:'I like bananas!'},
+      {id:'strawberry',en:'strawberry',p:'strawberries',e:'🍓',cnt:1,say:'Yummy, a strawberry!'},
+      {id:'icecream',en:'ice cream',p:'ice creams',e:'🍦',cnt:1,say:'I like ice cream!'},
+      {id:'cake',en:'cake',p:'cakes',e:'🍰',cnt:1,say:'Happy birthday! A cake!'},
+      {id:'pizza',en:'pizza',p:'pizzas',e:'🍕',cnt:1,say:'Pizza! Yummy!'},
+      {id:'bread',en:'bread',e:'🍞',say:'Bread for breakfast!'},
+      {id:'cookie',en:'cookie',p:'cookies',e:'🍪',cnt:1,say:'A cookie for you!'},
+      {id:'carrot',en:'carrot',p:'carrots',e:'🥕',cnt:1,say:'Rabbits like carrots!'},
+      {id:'egg',en:'egg',p:'eggs',e:'🥚',cnt:1,say:'An egg from the chicken!'},
+      {id:'cheese',en:'cheese',e:'🧀',say:'Mice like cheese!'},
+      {id:'milk',en:'milk',e:'🥛',say:'Milk for the cat!'} ] },
+];
+const I = Object.fromEntries(ISLANDS.map(x=>[x.id,x]));
+
+const GAMES = {
+  explore:{e:'👀', name:'Look & listen', say:'Look and listen!'},
+  find:{e:'👆', name:'Find it', say:'Find it!'},
+  count:{e:'🔢', name:'Count', say:"Let's count!"},
+  kick:{e:'🥅', name:'Goal!', say:"Let's play football!"},
+  fishing:{e:'🎣', name:'Fishing', say:"Let's go fishing!"},
+  memory:{e:'🃏', name:'Memory', say:"Let's play memory!"},
+  dance:{e:'💃', name:'Dance', say:"Let's dance!"},
+  shop:{e:'🛒', name:'Shop', say:"Let's play shop!"},
+};
+
+const AV = {
+  cat:{e:'🐱',en:'Cat',c:'#FFB547'}, unicorn:{e:'🦄',en:'Unicorn',c:'#F7A1D8'}, dog:{e:'🐶',en:'Dog',c:'#D7A46E'},
+  fish:{e:'🐠',en:'Fish',c:'#6CCBF4'}, rabbit:{e:'🐰',en:'Rabbit',c:'#BFA9F5'}, dancer:{e:'💃',en:'Dancer',c:'#FF8F8F'},
+  fox:{e:'🦊',en:'Fox',c:'#FF9E5A'}, panda:{e:'🐼',en:'Panda',c:'#A9B4C8'}, frog:{e:'🐸',en:'Frog',c:'#7ED67A'},
+  tiger:{e:'🐯',en:'Tiger',c:'#FFCB4D'}, lion:{e:'🦁',en:'Lion',c:'#F5B85A'}, owl:{e:'🦉',en:'Owl',c:'#C9A27A'},
+};
+const AVK = Object.keys(AV);
+
+const DANCE = [
+  {en:'Jump!',e:'🦘',a:'jump'}, {en:'Clap your hands!',e:'👏',a:'shake'}, {en:'Turn around!',e:'🔄',a:'spin'},
+  {en:'Stand on one foot!',e:'🦩',a:'tilt'}, {en:'Stretch up high!',e:'🙌',a:'grow'}, {en:'Wave hello!',e:'👋',a:'wave'},
+  {en:'Spin like a ballerina!',e:'🩰',a:'spin'}, {en:'Dance!',e:'💃',a:'jump'}, {en:'Shake your arms!',e:'🙆',a:'shake'},
+  {en:'Hop like a bunny!',e:'🐰',a:'jump'}, {en:'Swim like a fish!',e:'🐟',a:'wave'},
+];
+const COUNT_OBJ = [
+  {e:'⚽',s:'ball',p:'balls'}, {e:'⭐',s:'star',p:'stars'}, {e:'👟',s:'shoe',p:'shoes'},
+  {e:'🚩',s:'flag',p:'flags'}, {e:'🏆',s:'cup',p:'cups'},
+];
+const CUSTOMERS = ['🐱','🐶','🐰','🦄','🐸','🐼','🐷','🐮','🦊','🐧','🐻','🐨'];
+const PRAISE = ['Yes!','Great!','Well done!','Super!','Good job!','Awesome!','Fantastic!'];
+
+/* ---------- utils ---------- */
+const app = document.getElementById('app');
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const rnd = a => a[Math.floor(Math.random()*a.length)];
+const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
+const art = w => /^[aeiou]/i.test(w) ? 'an' : 'a';
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+
+/* ---------- storage (device + optional account sync) ---------- */
+const KEY = 'kiki-islands-v1';
+const blank = () => ({ v:1, updated:0, settings:{ rate:0.9, voice:'', roundLen:6 }, profiles:[] });
+function load(){
+  try{ const s = localStorage.getItem(KEY); if(s){ const d = JSON.parse(s); if(d && d.v===1) return Object.assign(blank(), d); } }catch(e){}
+  return blank();
+}
+let data = load();
+let cloudRef = null, pendingRemote = null, saveTimer = null;
+function save(){
+  data.updated = Date.now();
+  try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){}
+  clearTimeout(saveTimer); saveTimer = setTimeout(cloudSave, 1500);
+}
+async function cloudSave(){ if(!cloudRef) return; try{ await cloudRef.set(JSON.parse(JSON.stringify(data))); }catch(e){} }
+async function cloudInit(){
+  try{
+    if(!window.claude || !window.claude.use) return;
+    const [user, db] = await Promise.all([window.claude.use('user'), window.claude.use('db')]);
+    if(!user || !db) return;
+    const id = await user.id(); if(!id) return;
+    const ref = db.collection('data/users/'+id).doc('kiki');
+    const snap = await ref.get();
+    cloudRef = ref;
+    if(snap.exists){
+      const r = snap.data();
+      if(r && r.v===1 && (r.updated||0) > (data.updated||0)){
+        pendingRemote = Object.assign(blank(), r);
+        if(S.screen==='start' || S.screen==='profiles' || S.screen==='new'){ applyPending(); if(S.screen==='profiles') showProfiles(); }
+      }
+    } else if(data.profiles.length) cloudSave();
+  }catch(e){}
+}
+function applyPending(){
+  if(!pendingRemote) return;
+  data = pendingRemote; pendingRemote = null;
+  try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){}
+  Speech.pick();
+}
+
+/* ---------- learning model (Leitner boxes per child & word) ---------- */
+const ZERO = {b:0,s:0,ok:0,t:0};
+const key = (isl,item) => isl.id+':'+item.id;
+const wr = (p,k) => p.w[k] || ZERO;
+function W(p,k){ return p.w[k] || (p.w[k] = {b:0,s:0,ok:0,t:0}); }
+function record(p,isl,item,ok){
+  const w = W(p,key(isl,item)); w.s++; w.t = Date.now();
+  if(ok){ w.ok++; w.b = Math.min(5, w.b+1); } else w.b = Math.max(0, w.b-1);
+  save();
+}
+function seen(p,isl,item){ const w = W(p,key(isl,item)); w.s++; w.t = Date.now(); }
+function poolOf(p,isl){ return isl.items.slice(0, Math.min(isl.items.length, p.un[isl.id] || isl.start)); }
+function avgBox(p,isl){ const pool = poolOf(p,isl); return pool.reduce((s,i)=>s+wr(p,key(isl,i)).b,0)/pool.length; }
+function optCount(p,isl){ const a = avgBox(p,isl); return Math.min(isl.items.length, a<0.8 ? 2 : a<2 ? 3 : 4); }
+function maybeUnlock(p,isl){
+  const un = p.un[isl.id] || isl.start;
+  if(un < isl.items.length && poolOf(p,isl).every(i=>wr(p,key(isl,i)).b>=2)) p.un[isl.id] = Math.min(isl.items.length, un+2);
+}
+function mastery(p,isl){ return isl.items.filter(i=>wr(p,key(isl,i)).b>=3).length / isl.items.length; }
+function starsOf(p,isl){ const m = mastery(p,isl); return m>=.95 ? 3 : m>=.6 ? 2 : m>=.25 ? 1 : 0; }
+function pickOne(p,isl,avoid,filter){
+  let pool = poolOf(p,isl);
+  if(filter){ const f = pool.filter(filter); pool = f.length ? f : isl.items.filter(filter); }
+  if(pool.length>1 && avoid) pool = pool.filter(i=>i.id!==avoid);
+  const ws = pool.map(i=>{ const w = wr(p,key(isl,i)); return (6-w.b)**2 + (w.s===0?10:0) + Math.random()*3; });
+  let r = Math.random()*ws.reduce((a,b)=>a+b,0);
+  for(let i=0;i<pool.length;i++){ r -= ws[i]; if(r<=0) return pool[i]; }
+  return pool[pool.length-1];
+}
+function distractors(p,isl,target,n){
+  let pool = shuffle(poolOf(p,isl).filter(i=>i.id!==target.id));
+  if(pool.length<n) pool = pool.concat(shuffle(isl.items.filter(i=>i.id!==target.id && !pool.includes(i))));
+  return pool.slice(0,n);
+}
+
+/* ---------- phrases ---------- */
+function answer(isl,i){ return isl.kind==='noun' ? `The ${i.en}!` : cap(i.en)+'!'; }
+function that(isl,i){
+  if(isl.kind!=='noun') return `That's ${i.en}.`;
+  return i.pl ? `Those are ${i.en}.` : `That's ${art(i.en)} ${i.en}.`;
+}
+function findPrompt(isl,i){
+  switch(isl.id){
+    case 'football': return `Find number ${i.en}!`;
+    case 'ocean': return `Find ${i.en}!`;
+    case 'ballet': return `Show me the ${i.en}!`;
+    case 'farm': return Math.random()<.5 ? (i.pl?`Where are the ${i.en}?`:`Where is the ${i.en}?`) : `Find the ${i.en}!`;
+    default: return `Find the ${i.en}!`;
+  }
+}
+
+/* ---------- speech ---------- */
+const Speech = {
+  ok: 'speechSynthesis' in window, voices: [], voice: null, cut: false,
+  init(){
+    if(!this.ok) return;
+    const load = () => {
+      this.voices = speechSynthesis.getVoices().filter(v=>/^en([-_]|$)/i.test(v.lang));
+      this.pick();
+    };
+    load();
+    try{ speechSynthesis.addEventListener('voiceschanged', load); }catch(e){ speechSynthesis.onvoiceschanged = load; }
+  },
+  pick(){
+    const v = this.voices;
+    this.voice = v.find(x=>x.voiceURI===data.settings.voice)
+      || v.find(x=>/en[-_]GB/i.test(x.lang) && /google/i.test(x.name))
+      || v.find(x=>/en[-_]GB/i.test(x.lang))
+      || v.find(x=>/en[-_]US/i.test(x.lang)) || v[0] || null;
+  },
+  cancel(){ if(!this.ok) return; this.cut = true; try{ speechSynthesis.cancel(); }catch(e){} },
+  say(text, o={}){
+    return new Promise(res=>{
+      if(!this.ok || !text) return res();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = this.voice ? this.voice.lang : 'en-GB';
+      if(this.voice) u.voice = this.voice;
+      u.rate = (data.settings.rate||0.9) * (o.rate||1);
+      u.pitch = o.pitch || 1.2;
+      let done = false;
+      const t = setTimeout(()=>fin(), 1800 + text.length*120/(u.rate||1));
+      function fin(){ if(done) return; done = true; clearTimeout(t); res(); }
+      u.onend = fin; u.onerror = fin;
+      const go = () => { try{ speechSynthesis.resume(); speechSynthesis.speak(u); }catch(e){ fin(); } };
+      if(this.cut){ this.cut = false; setTimeout(go, 70); } else go();
+    });
+  }
+};
+function speakNow(text,o){ Speech.cancel(); return Speech.say(text,o); }
+
+/* ---------- sound effects (synthesized, no files) ---------- */
+const Sfx = {
+  c: null,
+  init(){ if(this.c){ try{ this.c.resume(); }catch(e){} return; } try{ this.c = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} },
+  tone(f,d,type='sine',vol=.18,when=0,slide=0,dest){
+    const c = this.c; if(!c) return;
+    const t = c.currentTime+when, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f,t); if(slide) o.frequency.exponentialRampToValueAtTime(slide,t+d);
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g).connect(dest||c.destination); o.start(t); o.stop(t+d+.05);
+  },
+  noise(d,vol=.2,when=0,freq=1000){
+    const c = this.c; if(!c) return;
+    const t = c.currentTime+when, b = c.createBuffer(1, Math.floor(c.sampleRate*d), c.sampleRate), ch = b.getChannelData(0);
+    for(let i=0;i<ch.length;i++) ch[i] = Math.random()*2-1;
+    const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = b; f.type = 'bandpass'; f.frequency.value = freq;
+    g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    s.connect(f).connect(g).connect(c.destination); s.start(t);
+  },
+  tap(){ this.tone(700,.08,'triangle',.12); },
+  ding(){ this.tone(880,.2,'sine',.2); this.tone(1320,.35,'sine',.16,.1); },
+  boop(){ this.tone(260,.25,'triangle',.14,0,170); },
+  splash(){ this.noise(.4,.22,0,700); },
+  whoosh(){ this.noise(.5,.12,0,450); },
+  cheer(){ this.noise(1.1,.1,0,1300); [523,659,784,1047].forEach((f,i)=>this.tone(f,.25,'triangle',.14,i*.09)); },
+  fanfare(){ [523,659,784,1047,784,1047].forEach((f,i)=>this.tone(f,.3,'triangle',.16,i*.12)); },
+  music(sec){
+    const c = this.c; if(!c) return ()=>{};
+    const g = c.createGain(); g.gain.value = 1; g.connect(c.destination);
+    const mel = [523,587,659,784,880,784,659,587, 659,784,880,1047,880,784,659,523];
+    const step = .25, n = Math.floor(sec/step);
+    for(let i=0;i<n;i++){
+      this.tone(mel[i%mel.length], .22, 'triangle', .12, i*step, 0, g);
+      if(i%2===0) this.tone(mel[i%mel.length]/2, .2, 'sine', .08, i*step, 0, g);
+    }
+    return () => { try{ g.gain.setValueAtTime(0, c.currentTime); g.disconnect(); }catch(e){} };
+  }
+};
+
+/* ---------- visuals ---------- */
+function vis(isl,item){
+  if(isl.kind==='number') return `<span class="v-num" style="--nc:${NUMC[item.n-1]}"><b>${item.n}</b><span class="pips">${'<i></i>'.repeat(item.n)}</span></span>`;
+  if(isl.kind==='color') return `<span class="v-color" style="--c:${item.c}"></span>`;
+  return `<span class="v-emoji">${item.e}</span>`;
+}
+function fishSVG(c){
+  const k = '#1F2E4A';
+  return `<svg viewBox="0 0 132 82" aria-hidden="true">
+    <path d="M48 16 Q62 0 78 16 Z" fill="${c}" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M92 41 L129 14 Q120 41 129 68 Z" fill="${c}" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>
+    <ellipse cx="55" cy="41" rx="46" ry="30" fill="${c}" stroke="${k}" stroke-width="3"/>
+    <path d="M70 30 Q82 41 70 54" fill="none" stroke="${k}" stroke-width="3" stroke-linecap="round" opacity=".45"/>
+    <circle cx="28" cy="34" r="8.5" fill="#fff" stroke="${k}" stroke-width="2"/><circle cx="25.5" cy="34" r="4.2" fill="${k}"/>
+    <path d="M12 49 Q20 56 29 51" fill="none" stroke="${k}" stroke-width="3" stroke-linecap="round"/></svg>`;
+}
+function chip(p, cls=''){ const a = AV[p.av]; return `<span class="chip ${cls}" style="--pc:${a.c}" aria-label="${a.en}">${a.e}</span>`; }
+function kikiRow(text){ return `<div class="kiki-row"><span class="kiki" aria-hidden="true">🦜</span><div class="bubble">${text}</div></div>`; }
+function starsHtml(n){ return '★'.repeat(n) + '☆'.repeat(3-n); }
+function confetti(n=50){
+  const cols = ['#FF6B5B','#FFC93C','#2FBF71','#2D9CDB','#9B5DE5','#F15BB5'];
+  for(let i=0;i<n;i++){
+    const d = document.createElement('i'); d.className = 'confetti';
+    d.style.left = Math.random()*100+'vw'; d.style.background = rnd(cols);
+    d.style.animationDuration = (1.6+Math.random()*1.4)+'s'; d.style.animationDelay = (Math.random()*.4)+'s';
+    document.body.appendChild(d); setTimeout(()=>d.remove(), 3600);
+  }
+}
+function wobble(el){ el.classList.remove('wobble'); void el.offsetWidth; el.classList.add('wobble'); }
+
+/* ---------- app state & navigation ---------- */
+const S = { screen:'start', players:[], teamPick:null, isl:null, last:null };
+let CUR = null;
+let wakeLock = null;
+async function keepAwake(){ try{ if(navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); }catch(e){} }
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && S.screen!=='start') keepAwake(); });
+
+function quitGame(){
+  if(CUR){ CUR.aborted = true; CUR.cleanups.forEach(f=>{ try{ f(); }catch(e){} }); CUR = null; }
+  Speech.cancel();
+  document.querySelectorAll('.turn,.ex-pop').forEach(e=>e.remove());
+}
+function bind(sel, fn){ app.querySelectorAll(sel).forEach(el=>el.addEventListener('click', e=>{ Sfx.tap(); fn(el,e); })); }
+
+/* ---------- start ---------- */
+function showStart(){
+  S.screen = 'start';
+  app.innerHTML = `<div class="screen start">
+    <h1 class="logo">Kiki's <span>Word Islands</span></h1>
+    <div class="start-isle" aria-hidden="true">🏝️<span class="kiki">🦜</span></div>
+    <button class="play" id="play" aria-label="Spiel starten">▶</button>
+    <p class="note-de">Englisch für Kinder ab 4 · Ton an 🔊 · Eltern-Bereich: Schloss 2 Sek. gedrückt halten</p>
+    <div id="warn"></div>
+  </div>`;
+  document.getElementById('play').addEventListener('click', async ()=>{
+    Sfx.init(); Sfx.ding(); keepAwake();
+    Speech.say("Hello! I'm Kiki!");
+    showProfiles(true);
+  });
+  setTimeout(()=>{
+    const w = document.getElementById('warn');
+    if(w && (!Speech.ok || !Speech.voices.length)) w.innerHTML = `<p class="warn">Keine englische Stimme gefunden. Öffne das Spiel in Chrome (nicht in einer App-Ansicht) und prüfe unter Android › Einstellungen › Sprache › Text-in-Sprache, dass Englisch installiert ist.</p>`;
+  }, 2500);
+}
+
+/* ---------- profiles ---------- */
+function holdBtn(){ return `<div class="hold-wrap"><button class="icon-btn hold" id="hold" aria-label="Elternbereich: 2 Sekunden gedrückt halten">🔒<span class="fill"></span></button>Eltern</div>`; }
+function bindHold(){
+  const b = document.getElementById('hold'); if(!b) return;
+  let t = null;
+  const stop = () => { clearTimeout(t); b.classList.remove('holding'); };
+  b.addEventListener('pointerdown', e=>{ e.preventDefault(); b.classList.add('holding'); t = setTimeout(()=>{ stop(); showParents(); }, 1500); });
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev, stop));
+  b.addEventListener('contextmenu', e=>e.preventDefault());
+  b.addEventListener('keydown', e=>{ if(e.key==='Enter' && e.repeat) showParents(); });
+}
+function showProfiles(fromStart){
+  quitGame(); applyPending();
+  S.screen = 'profiles';
+  if(!data.profiles.length) return showNewProfile(true);
+  const team = S.teamPick;
+  const msg = team ? 'Two players! Tap two animals.' : 'Who is playing?';
+  app.innerHTML = `<div class="screen">
+    <div class="bar"><span class="sp"></span>${holdBtn()}</div>
+    ${kikiRow(msg)}
+    <div class="who">
+      ${data.profiles.map(p=>{ const a = AV[p.av]; const n = Object.keys(p.st).length;
+        return `<button class="who-av ${team && team.includes(p.id)?'sel':''}" data-id="${p.id}" style="--pc:${a.c}" aria-label="${a.en}">${a.e}<small>⭐ ${n}</small></button>`; }).join('')}
+      ${data.profiles.length < AVK.length ? `<button class="who-add ${team && data.profiles.length<2?'call':''}" id="add" aria-label="Neues Kind anlegen">+</button>` : ''}
+    </div>
+    <button class="team-btn ${team?'on':''}" id="team" aria-label="Zu zweit spielen"><span>🤝</span><span>${team ? 'Together!' : 'Together'}</span></button>
+  </div>`;
+  if(!fromStart) speakNow(msg); else Speech.say(msg);
+  bindHold();
+  bind('#add', ()=>showNewProfile(false));
+  bind('#team', ()=>{
+    S.teamPick = S.teamPick ? null : [];
+    if(S.teamPick && data.profiles.length<2){ showProfiles(); speakNow('Add a friend!'); return; }
+    showProfiles();
+  });
+  bind('.who-av', el=>{
+    const p = data.profiles.find(x=>x.id===el.dataset.id);
+    if(S.teamPick){
+      const tp = S.teamPick;
+      if(tp.includes(p.id)) tp.splice(tp.indexOf(p.id),1); else tp.push(p.id);
+      el.classList.toggle('sel', tp.includes(p.id));
+      speakNow(AV[p.av].en+'!');
+      if(tp.length===2){
+        S.players = tp.map(id=>data.profiles.find(x=>x.id===id)); S.teamPick = null;
+        const [a,b] = S.players.map(x=>AV[x.av].en);
+        setTimeout(()=>{ showMap(); speakNow(`${a} and ${b}! Let's play together!`); }, 450);
+      }
+      return;
+    }
+    S.players = [p];
+    showMap(); speakNow(`Hello, ${AV[p.av].en}!`);
+  });
+}
+function showNewProfile(first){
+  quitGame();
+  S.screen = 'new';
+  const used = new Set(data.profiles.map(p=>p.av));
+  const free = AVK.filter(k=>!used.has(k));
+  app.innerHTML = `<div class="screen">
+    <div class="bar">${first ? '<span class="sp"></span>' : '<button class="icon-btn" id="back" aria-label="Zurück">←</button><span class="sp"></span>'}</div>
+    ${kikiRow('Hello! Who are you? Pick an animal!')}
+    <div class="who">${free.map(k=>`<button class="av-pick" data-av="${k}" style="--pc:${AV[k].c}" aria-label="${AV[k].en}">${AV[k].e}</button>`).join('')}</div>
+  </div>`;
+  speakNow('Hello! Who are you? Pick an animal!');
+  bind('#back', ()=>showProfiles());
+  bind('.av-pick', el=>{
+    const p = { id:'p'+Date.now().toString(36), av:el.dataset.av, w:{}, st:{}, un:{}, rounds:0 };
+    data.profiles.push(p); save();
+    Sfx.ding(); confetti(30);
+    if(first || (S.teamPick && data.profiles.length<2 && false)){ S.players = [p]; showMap(); speakNow(`Hello, ${AV[p.av].en}! Let's go!`); }
+    else { showProfiles(); speakNow(`Hello, ${AV[p.av].en}!`); }
+  });
+}
+
+/* ---------- map ---------- */
+function teamStars(isl){ const s = S.players.map(p=>starsOf(p,isl)); return Math.round(s.reduce((a,b)=>a+b,0)/s.length); }
+function showMap(){
+  quitGame();
+  S.screen = 'map';
+  app.innerHTML = `<div class="screen">
+    <div class="bar">
+      <button class="icon-btn" id="home" aria-label="Spieler wechseln">🏠</button>
+      <div class="chips">${S.players.map(p=>chip(p)).join('')}</div>
+      <button class="icon-btn" id="album" aria-label="Stickeralbum">📒</button>
+    </div>
+    <div class="sea" id="sea">
+      ${ISLANDS.map((isl,i)=>`<button class="isle ${i%2?'r':'l'}" data-id="${isl.id}" style="--isl:${isl.bg}" aria-label="${isl.en}">
+        <span class="isle-e">${isl.e}</span><span class="isle-n">${isl.en}</span><span class="isle-s">${starsHtml(teamStars(isl))}</span>
+        ${S.last===isl.id ? '<span class="boat" aria-hidden="true">⛵</span>' : ''}</button>`).join('<span class="path" aria-hidden="true"></span>')}
+    </div>
+  </div>`;
+  bind('#home', ()=>showProfiles());
+  bind('#album', ()=>showAlbum(0));
+  bind('.isle', el=>showIsland(el.dataset.id));
+  const here = app.querySelector('.boat');
+  if(here) here.closest('.isle').scrollIntoView({block:'center'});
+}
+
+/* ---------- island ---------- */
+function showIsland(id){
+  quitGame();
+  const isl = I[id]; S.isl = isl; S.last = id; S.screen = 'island';
+  const firstTime = S.players.every(p=>isl.items.every(i=>!p.w[key(isl,i)]));
+  app.innerHTML = `<div class="screen">
+    <div class="bar">
+      <button class="icon-btn" id="map" aria-label="Zur Inselkarte">🗺️</button>
+      <div class="isle-title">${isl.en}<small>${isl.de}</small></div>
+      <div class="chips" style="flex:none">${S.players.map(p=>chip(p)).join('')}</div>
+    </div>
+    <div class="hero" style="--isl:${isl.bg}"><span class="hero-scene" aria-hidden="true">${isl.scene}</span></div>
+    <div class="tiles">${isl.games.map((g,i)=>`<button class="tile ${firstTime && i===0 ? 'first' : ''}" data-g="${g}" aria-label="${GAMES[g].name}"><span class="tile-e">${GAMES[g].e}</span><span class="tile-n">${GAMES[g].name}</span></button>`).join('')}</div>
+  </div>`;
+  speakNow(isl.hello);
+  bind('#map', ()=>showMap());
+  bind('.tile', el=>{ startGame(el.dataset.g); });
+}
+
+/* ---------- game shell ---------- */
+function startGame(gid){
+  quitGame();
+  const isl = S.isl;
+  const G = { isl, game:gid, step:0, total:data.settings.roundLen, turn:0, aborted:false, cleanups:[], good:new Set(),
+              prompt:'', pitch:1.2, last:null, busy:false };
+  CUR = G; S.screen = 'game';
+  app.innerHTML = `<div class="screen" style="--isl:${isl.bg}">
+    <div class="gbar">
+      <button class="icon-btn" id="quit" aria-label="Spiel beenden">✕</button>
+      <div class="prog" id="prog"></div>
+      <button class="icon-btn replay" id="replay" aria-label="Nochmal hören">🔊</button>
+    </div>
+    <div class="chips" id="players"></div>
+    <div class="prompt" id="prompt" aria-live="polite"></div>
+    <div class="stage" id="stage"></div>
+  </div>`;
+  G.stage = document.getElementById('stage');
+  G.alive = () => !G.aborted && CUR===G;
+  G.player = () => S.players[G.turn % S.players.length];
+  G.drawPlayers = () => {
+    const el = document.getElementById('players'); if(!el) return;
+    el.innerHTML = S.players.length>1 ? S.players.map(p=>chip(p, p===G.player() ? 'act' : 'dim')).join('') : '';
+    el.hidden = S.players.length<2;
+  };
+  G.nextTurn = () => { if(S.players.length>1){ G.turn++; G.drawPlayers(); } };
+  G.drawProgress = () => {
+    const el = document.getElementById('prog'); if(!el) return;
+    el.innerHTML = Array.from({length:G.total},(_,i)=>`<i class="dot ${i<G.step?'on':''}"></i>`).join('');
+  };
+  G.setPrompt = (t,pitch) => { G.prompt = t; G.pitch = pitch || 1.2; const el = document.getElementById('prompt'); if(el) el.textContent = t; };
+  G.sayPrompt = () => { const intro = G.intro; G.intro = null;
+    if(intro) return speakNow(intro).then(()=>G.alive() ? Speech.say(G.prompt,{pitch:G.pitch}) : null);
+    return speakNow(G.prompt, {pitch:G.pitch}); };
+  G.cleanup = f => G.cleanups.push(f);
+  document.getElementById('quit').addEventListener('click', ()=>{ Sfx.tap(); showIsland(isl.id); });
+  document.getElementById('replay').addEventListener('click', ()=>{ G.sayPrompt(); });
+  G.drawPlayers();
+  ENGINES[gid](G);
+}
+async function runTasks(G, task){
+  G.drawProgress();
+  G.intro = S.players.length>1 ? null : GAMES[G.game].say;
+  while(G.step < G.total){
+    if(!G.alive()) return;
+    if(S.players.length>1){ await turnBanner(G); if(!G.alive()) return; }
+    G.busy = false;
+    await task(G);
+    if(!G.alive()) return;
+    G.step++; G.drawProgress();
+    G.nextTurn();
+    await sleep(350);
+  }
+  if(G.alive()) finishRound(G);
+}
+async function turnBanner(G){
+  const a = AV[G.player().av];
+  const o = document.createElement('div'); o.className = 'turn';
+  o.innerHTML = `<div class="turn-av" style="--pc:${a.c}">${a.e}</div>`;
+  document.body.appendChild(o);
+  Sfx.tap();
+  await Promise.all([speakNow(`${a.en}, your turn!`), sleep(1000)]);
+  o.remove();
+}
+function attempt(G,isl,target){
+  return { wrong:0,
+    fail(){ this.wrong++; if(this.wrong===1) record(G.player(), isl, target, false); },
+    win(){ if(this.wrong===0) record(G.player(), isl, target, true); G.good.add(target.id); } };
+}
+
+/* ---------- engines ---------- */
+const ENGINES = {
+  explore(G){
+    const isl = G.isl;
+    document.getElementById('prog').innerHTML = '';
+    G.stage.classList.add('top');
+    G.setPrompt('Tap and listen!'); G.sayPrompt();
+    G.stage.innerHTML = `<div class="ex-grid">${isl.items.map((it,i)=>`<button class="choice" data-i="${i}" aria-label="${it.en}">${vis(isl,it)}</button>`).join('')}</div>`;
+    G.stage.querySelectorAll('.choice').forEach(b=>b.addEventListener('click', ()=>{
+      const it = isl.items[+b.dataset.i];
+      S.players.forEach(p=>seen(p,isl,it)); save();
+      const say = it.say || it.cmd || answer(isl,it);
+      const pop = document.createElement('div'); pop.className = 'ex-pop';
+      pop.innerHTML = `<div class="ex-card">${vis(isl,it)}<div class="ex-word">${it.en}</div>${it.x?`<div class="ex-extra">${it.x}</div>`:''}<div class="ex-say">${say}</div></div>`;
+      document.body.appendChild(pop);
+      pop.addEventListener('click', ()=>{ pop.remove(); Speech.cancel(); });
+      (async()=>{ await speakNow(it.en); await sleep(250); if(pop.isConnected) await Speech.say(say); })();
+    }));
+  },
+  find(G){ runTasks(G, findTask); },
+  count(G){ runTasks(G, countTask); },
+  kick(G){ runTasks(G, kickTask); },
+  fishing(G){ runTasks(G, fishTask); },
+  shop(G){ runTasks(G, shopTask); },
+  memory(G){ memoryGame(G); },
+  dance(G){ danceGame(G); },
+};
+
+function findTask(G){
+  const isl = G.isl, p = G.player();
+  const target = pickOne(p,isl,G.last); G.last = target.id;
+  const k = optCount(p,isl);
+  const opts = shuffle([target, ...distractors(p,isl,target,k-1)]);
+  G.setPrompt(findPrompt(isl,target));
+  G.stage.innerHTML = `<div class="choices n${opts.length}">${opts.map((o,i)=>`<button class="choice" data-i="${i}" aria-label="${o.en}">${vis(isl,o)}</button>`).join('')}</div>`;
+  G.sayPrompt();
+  const at = attempt(G,isl,target);
+  return new Promise(res=>{
+    G.stage.querySelectorAll('.choice').forEach(btn=>btn.addEventListener('click', async ()=>{
+      if(G.busy) return;
+      const o = opts[+btn.dataset.i];
+      if(o===target){
+        G.busy = true; at.win(); btn.classList.add('right'); Sfx.ding();
+        await speakNow(`${rnd(PRAISE)} ${answer(isl,o)}`); res();
+      } else {
+        at.fail(); wobble(btn); Sfx.boop();
+        speakNow(`${that(isl,o)} ${G.prompt}`);
+        if(at.wrong>=2) G.stage.querySelector(`[data-i="${opts.indexOf(target)}"]`).classList.add('hint');
+      }
+    }));
+  });
+}
+
+async function countTask(G){
+  const isl = G.isl, p = G.player();
+  const target = pickOne(p,isl,G.last); G.last = target.id;
+  const N = target.n, obj = rnd(COUNT_OBJ);
+  const cols = N<=4 ? 2 : N<=6 ? 3 : 4, rows = N<=6 ? 2 : 3;
+  const cells = shuffle(Array.from({length:cols*rows},(_,i)=>i)).slice(0,N);
+  G.stage.innerHTML = `<div class="pitch" id="pitch">${cells.map(c=>{
+      const x = ((c%cols)+.5)/cols*100 + (Math.random()*10-5), y = (Math.floor(c/cols)+.5)/rows*100 + (Math.random()*10-5);
+      return `<button class="thing" style="left:${x}%;top:${y}%" aria-label="${obj.s}">${obj.e}</button>`; }).join('')}</div>
+    <div class="choices nums" id="ans" hidden></div>`;
+  G.setPrompt(`Count the ${obj.p}!`); G.sayPrompt();
+  const things = [...G.stage.querySelectorAll('.thing')];
+  let counted = 0;
+  await new Promise(res=>things.forEach(t=>t.addEventListener('click', ()=>{
+    if(t.classList.contains('done') || counted>=N) return;
+    counted++; t.classList.add('done'); t.dataset.n = counted; Sfx.tap();
+    speakNow(NUMW[counted-1]);
+    if(counted===N) setTimeout(res, 800);
+  })));
+  if(!G.alive()) return;
+  const k = Math.max(2, optCount(p,isl));
+  const near = shuffle([1,2,3,4,5,6,7,8,9,10].filter(n=>n!==N).sort((a,b)=>Math.abs(a-N)-Math.abs(b-N)).slice(0,4)).slice(0,k-1);
+  const opts = shuffle([N, ...near]);
+  const ans = document.getElementById('ans'); ans.hidden = false;
+  ans.className = `choices nums n${opts.length}`;
+  ans.innerHTML = opts.map(n=>`<button class="choice" data-n="${n}" aria-label="${NUMW[n-1]}"><span class="v-digit" style="color:${NUMC[n-1]}">${n}</span></button>`).join('');
+  G.setPrompt(`How many ${obj.p}?`); G.sayPrompt();
+  const at = attempt(G,isl,target);
+  await new Promise(res=>ans.querySelectorAll('.choice').forEach(btn=>btn.addEventListener('click', async ()=>{
+    if(G.busy) return;
+    const n = +btn.dataset.n;
+    if(n===N){
+      G.busy = true; at.win(); btn.classList.add('right'); Sfx.ding();
+      await speakNow(`Yes! ${cap(NUMW[N-1])} ${N===1?obj.s:obj.p}!`); res();
+    } else {
+      G.busy = true; at.fail(); wobble(btn); Sfx.boop();
+      await speakNow("Let's count again!");
+      const ordered = things.slice().sort((a,b)=>a.dataset.n-b.dataset.n);
+      for(let i=0;i<ordered.length;i++){
+        if(!G.alive()) return;
+        ordered[i].classList.add('flash'); await Speech.say(NUMW[i]); ordered[i].classList.remove('flash');
+      }
+      if(!G.alive()) return;
+      if(at.wrong>=2) ans.querySelector(`[data-n="${N}"]`).classList.add('hint');
+      G.sayPrompt(); G.busy = false;
+    }
+  })));
+}
+
+async function kickTask(G){
+  const isl = G.isl, p = G.player();
+  const target = pickOne(p,isl,G.last); G.last = target.id;
+  const k = Math.max(2, Math.min(3, optCount(p,isl)));
+  const opts = shuffle([target, ...distractors(p,isl,target,k-1)]);
+  G.stage.innerHTML = `<div class="field">
+      <div class="goals">${opts.map((o,i)=>`<button class="goal" data-i="${i}" aria-label="${o.en}"><b>${o.n}</b></button>`).join('')}</div>
+      <div class="kicker"><span aria-hidden="true">${AV[p.av].e}</span><span class="ball" id="ball">⚽</span></div></div>`;
+  G.setPrompt(`Kick the ball to number ${target.en}!`); G.sayPrompt();
+  const ball = document.getElementById('ball');
+  const at = attempt(G,isl,target);
+  await new Promise(res=>G.stage.querySelectorAll('.goal').forEach(goal=>goal.addEventListener('click', async ()=>{
+    if(G.busy) return; G.busy = true;
+    const o = opts[+goal.dataset.i];
+    const b = ball.getBoundingClientRect(), g = goal.getBoundingClientRect();
+    const dx = g.left+g.width/2-(b.left+b.width/2), dy = g.top+g.height/2-(b.top+b.height/2);
+    Sfx.whoosh();
+    ball.style.transition = 'transform .55s cubic-bezier(.2,.7,.3,1)';
+    ball.style.transform = `translate(${dx}px,${dy}px) scale(.6) rotate(540deg)`;
+    await sleep(560); if(!G.alive()) return;
+    if(o===target){
+      at.win(); goal.classList.add('scored'); Sfx.cheer(); confetti(40);
+      await speakNow(`Goal! ${cap(target.en)}!`); res();
+    } else {
+      at.fail(); wobble(goal); Sfx.boop();
+      ball.style.transform = '';
+      speakNow(`Oops! That's ${o.en}. ${G.prompt}`);
+      if(at.wrong>=2) G.stage.querySelector(`[data-i="${opts.indexOf(target)}"]`).classList.add('hint');
+      await sleep(550); G.busy = false;
+    }
+  })));
+}
+
+async function fishTask(G){
+  const isl = G.isl, p = G.player();
+  const target = pickOne(p,isl,G.last); G.last = target.id;
+  const k = Math.min(5, Math.max(3, optCount(p,isl)+1));
+  const list = shuffle([target, ...distractors(p,isl,target,k-1)]);
+  G.stage.innerHTML = `<div class="water" id="water"><span class="seabed" aria-hidden="true">🪸🐚</span><span class="bucket" aria-hidden="true">🪣</span></div>`;
+  const water = document.getElementById('water');
+  const fishes = list.map((it,i)=>{
+    const el = document.createElement('button'); el.className = 'fish'; el.setAttribute('aria-label', it.en+' fish');
+    const dir = i%2 ? 1 : -1;
+    el.innerHTML = `<span class="fl ${dir>0?'r':''}">${fishSVG(it.c)}</span>`;
+    water.appendChild(el);
+    return { el, it, x: Math.random()*Math.max(60, water.clientWidth-100), vx: dir*(34+Math.random()*30), boost:0, slow:false, caught:false };
+  });
+  G.setPrompt(`Catch the ${target.en} fish!`); G.sayPrompt();
+  let last = performance.now(), raf = 0;
+  const frame = t => {
+    const dt = Math.min(.05,(t-last)/1000); last = t;
+    const Wd = water.clientWidth, H = water.clientHeight;
+    const fw = fishes[0].el.offsetWidth || 100, fh = fw*82/132, lane = (H-30)/fishes.length;
+    fishes.forEach((f,i)=>{
+      if(f.caught) return;
+      const sp = f.vx*(f.boost>t?3:1)*(f.slow?.4:1);
+      f.x += sp*dt;
+      if(f.x > Wd+10) f.x = -fw-10;
+      if(f.x < -fw-10) f.x = Wd+10;
+      f.y = 8 + i*lane + Math.max(0,(lane-fh)/2) + Math.sin(t/650+i*1.7)*6;
+      f.el.style.transform = `translate(${f.x}px,${f.y}px)`;
+    });
+    raf = requestAnimationFrame(frame);
+  };
+  raf = requestAnimationFrame(frame);
+  G.cleanup(()=>cancelAnimationFrame(raf));
+  const at = attempt(G,isl,target);
+  await new Promise(res=>fishes.forEach(f=>f.el.addEventListener('pointerdown', async e=>{
+    e.preventDefault();
+    if(G.busy || f.caught) return;
+    if(f.it===target){
+      G.busy = true; f.caught = true; at.win();
+      const Wd = water.clientWidth, H = water.clientHeight;
+      f.el.style.transition = 'transform .7s ease-in, opacity .7s';
+      f.el.style.transform = `translate(${Wd-80}px,${H-60}px) scale(.3)`; f.el.style.opacity = '0';
+      Sfx.splash(); setTimeout(()=>Sfx.ding(), 350);
+      await speakNow(`${rnd(PRAISE)} ${cap(art(target.en))} ${target.en} fish!`);
+      cancelAnimationFrame(raf); res();
+    } else {
+      at.fail(); Sfx.boop();
+      f.boost = performance.now()+1200;
+      f.el.classList.remove('wig'); void f.el.offsetWidth; f.el.classList.add('wig');
+      speakNow(`That's ${art(f.it.en)} ${f.it.en} fish! ${G.prompt}`);
+      if(at.wrong>=2){ const tf = fishes.find(x=>x.it===target); tf.slow = true; tf.el.classList.add('hint'); }
+    }
+  })));
+}
+
+async function shopTask(G){
+  const isl = G.isl, p = G.player(), NUM = I.football;
+  const food = pickOne(p,isl,G.last,i=>i.cnt); G.last = food.id;
+  const maxN = Math.min(5, p.un.football || NUM.start);
+  const numItem = pickOne(p, NUM, null, i=>i.n<=maxN);
+  const N = numItem.n;
+  const k = Math.max(2, Math.min(4, optCount(p,isl)));
+  const shelf = shuffle([food, ...distractors(p,isl,food,k-1)]);
+  const cust = rnd(CUSTOMERS), pitch = .85 + Math.random()*.65;
+  const req = N===1 ? `${cap(art(food.en))} ${food.en}, please!` : `${cap(NUMW[N-1])} ${food.p}, please!`;
+  G.setPrompt(req, pitch);
+  G.stage.innerHTML = `<div class="shop">
+      <div class="cust"><span class="cust-e" id="cust">${cust}</span><button class="say-btn" id="say" aria-label="Nochmal hören">💬</button></div>
+      <div class="counter"><div class="on-counter" id="oc"></div><button class="bell" id="bell" aria-label="Fertig – Glocke">🛎️</button></div>
+      <div class="shelf" style="--k:${shelf.length}">${shelf.map((o,i)=>`<button class="choice" data-i="${i}" aria-label="${o.en}">${vis(isl,o)}</button>`).join('')}</div></div>`;
+  const oc = document.getElementById('oc'), bell = document.getElementById('bell'), custEl = document.getElementById('cust');
+  document.getElementById('say').addEventListener('click', ()=>G.sayPrompt());
+  speakNow('Hello! '+req, {pitch});
+  let cnt = 0, wrongFood = false, wrongNum = false;
+  const refresh = () => bell.classList.toggle('ready', cnt>0);
+  await new Promise(res=>{
+    G.stage.querySelectorAll('.shelf .choice').forEach(btn=>btn.addEventListener('click', ()=>{
+      if(G.busy) return;
+      const o = shelf[+btn.dataset.i];
+      if(o===food){
+        if(cnt>=10) return;
+        cnt++; Sfx.tap();
+        const it = document.createElement('button'); it.textContent = food.e; it.setAttribute('aria-label','wegnehmen');
+        it.addEventListener('click', ()=>{ if(G.busy) return; it.remove(); cnt--; Sfx.boop(); if(cnt) speakNow(NUMW[cnt-1]); refresh(); });
+        oc.appendChild(it); speakNow(NUMW[cnt-1]); refresh();
+      } else {
+        wrongFood = true; wobble(btn); Sfx.boop();
+        speakNow(`That's ${art(o.en)} ${o.en}!`).then(()=>{ if(G.alive()) Speech.say(req,{pitch}); });
+      }
+    }));
+    bell.addEventListener('click', async ()=>{
+      if(G.busy || cnt===0) return;
+      if(cnt===N){
+        G.busy = true;
+        record(p,isl,food,!wrongFood); record(p,NUM,numItem,!wrongNum); G.good.add(food.id);
+        Sfx.ding(); custEl.classList.add('happy');
+        await speakNow('Thank you!', {pitch}); if(!G.alive()) return;
+        await Speech.say("You're welcome!"); if(!G.alive()) return;
+        custEl.classList.add('bye'); Sfx.whoosh(); await sleep(650); res();
+      } else {
+        wrongNum = true; Sfx.boop(); wobble(oc);
+        const more = cnt<N ? 'More, please!' : 'Too many!';
+        speakNow(more, {pitch}).then(()=>{ if(G.alive()) Speech.say(N===1 ? `One ${food.en}, please!` : `${cap(NUMW[N-1])}, please!`, {pitch}); });
+      }
+    });
+  });
+}
+
+async function memoryGame(G){
+  const isl = G.isl, p = G.player();
+  const k = optCount(p,isl), pairs = k<=2 ? 3 : k===3 ? 4 : 6;
+  let items = shuffle(poolOf(p,isl)).slice(0,pairs);
+  if(items.length<pairs) items = items.concat(shuffle(isl.items.filter(i=>!items.includes(i))).slice(0,pairs-items.length));
+  G.total = pairs; G.drawProgress();
+  const cards = shuffle([...items, ...items]);
+  G.stage.innerHTML = `<div class="mem" style="--cols:${pairs===3?3:4}">${cards.map((c,i)=>`<button class="card" data-i="${i}" aria-label="Karte ${i+1}"><span class="card-in"><span class="face back">${isl.e}</span><span class="face front">${vis(isl,c)}</span></span></button>`).join('')}</div>`;
+  G.setPrompt('Find the pairs!'); G.sayPrompt();
+  let open = [], lock = false;
+  G.stage.querySelectorAll('.card').forEach(b=>b.addEventListener('click', async ()=>{
+    if(lock || b.classList.contains('up')) return;
+    const it = cards[+b.dataset.i];
+    b.classList.add('up'); Sfx.tap(); open.push(b);
+    if(open.length===1){ speakNow(it.en); return; }
+    lock = true;
+    const [a, c] = open; open = [];
+    await speakNow(it.en); if(!G.alive()) return;
+    if(cards[+a.dataset.i]===it){
+      a.classList.add('matched'); c.classList.add('matched'); Sfx.ding();
+      seen(G.player(),isl,it); G.good.add(it.id);
+      G.step++; G.drawProgress();
+      await speakNow(rnd(PRAISE)); if(!G.alive()) return;
+    } else {
+      await sleep(700); if(!G.alive()) return;
+      a.classList.remove('up'); c.classList.remove('up');
+    }
+    if(G.step>=G.total){ save(); await sleep(300); if(G.alive()) finishRound(G); return; }
+    G.nextTurn(); lock = false;
+  }));
+}
+
+async function danceGame(G){
+  const isl = G.isl, p = G.player();
+  G.drawProgress();
+  const body = poolOf(p,isl).map(i=>({en:i.cmd, e:i.e, a:'bounce', item:i}));
+  const all = [...DANCE, ...body];
+  G.stage.innerHTML = `<div class="dance" id="dance"><div class="dance-icon" id="dicon">💃</div><div class="dancer" aria-hidden="true">🩰</div>
+    <div class="notes" aria-hidden="true"><span style="left:10%;top:70%">🎵</span><span style="left:80%;top:60%;animation-delay:.7s">🎶</span><span style="left:45%;top:80%;animation-delay:1.3s">🎵</span></div></div>`;
+  const dance = document.getElementById('dance'), icon = document.getElementById('dicon');
+  G.setPrompt(S.players.length>1 ? 'Everybody, stand up!' : 'Stand up!');
+  await G.sayPrompt(); if(!G.alive()) return;
+  let last = null;
+  while(G.step < G.total){
+    let c; do c = rnd(all); while(c===last); last = c;
+    icon.textContent = c.e; icon.className = 'dance-icon pop'; G.setPrompt(c.en);
+    await speakNow(c.en); if(!G.alive()) return;
+    icon.className = `dance-icon go a-${c.a}`; dance.classList.add('music');
+    const stop = Sfx.music(4); G.cleanup(stop);
+    await sleep(4200); if(!G.alive()) return;
+    stop(); dance.classList.remove('music'); icon.className = 'dance-icon';
+    await speakNow('Stop!'); if(!G.alive()) return;
+    if(c.item){ S.players.forEach(pl=>seen(pl,isl,c.item)); G.good.add(c.item.id); }
+    G.step++; G.drawProgress(); Sfx.ding();
+    await sleep(500); if(!G.alive()) return;
+  }
+  finishRound(G);
+}
+
+/* ---------- round end ---------- */
+function finishRound(G){
+  const isl = G.isl;
+  const good = [...G.good].map(id=>isl.items.find(i=>i.id===id)).filter(Boolean);
+  const cand = good.length ? good : poolOf(S.players[0], isl);
+  const fresh = cand.filter(i=>S.players.some(p=>!p.st[key(isl,i)]));
+  const st = rnd(fresh.length ? fresh : cand);
+  S.players.forEach(p=>{ const k = key(isl,st); p.st[k] = (p.st[k]||0)+1; maybeUnlock(p,isl); p.rounds = (p.rounds||0)+1; });
+  save();
+  CUR = null; S.screen = 'end';
+  const team = S.players.length>1;
+  const msg = team ? 'Great teamwork!' : rnd(['Well done!','Super!','Fantastic!']);
+  app.innerHTML = `<div class="screen end">
+    ${kikiRow(msg)}
+    <div class="sticker">${vis(isl,st)}</div>
+    <div class="end-avs">${S.players.map(p=>chip(p,'act')).join('')}</div>
+    <div class="end-btns">
+      <button class="big-btn main" id="again" aria-label="Nochmal spielen">🔁</button>
+      <button class="big-btn" id="toisle" aria-label="Zur Insel">${isl.e}</button>
+      <button class="big-btn" id="album" aria-label="Stickeralbum">📒</button>
+    </div></div>`;
+  Sfx.fanfare(); confetti(70);
+  (async()=>{ await speakNow(`${msg} A new sticker for you!`); if(S.screen==='end') await Speech.say(answer(isl,st)); })();
+  bind('#again', ()=>startGame(G.game));
+  bind('#toisle', ()=>showIsland(isl.id));
+  bind('#album', ()=>showAlbum(0));
+}
+
+/* ---------- album ---------- */
+function showAlbum(idx){
+  quitGame();
+  S.screen = 'album';
+  const p = S.players[idx] || S.players[0];
+  app.innerHTML = `<div class="screen">
+    <div class="bar">
+      <button class="icon-btn" id="map" aria-label="Zur Inselkarte">🗺️</button>
+      <div class="chips">${S.players.map((x,i)=>`<button data-i="${i}" class="tab" aria-label="Album von ${AV[x.av].en}">${chip(x, x===p ? 'act' : (S.players.length>1?'dim':''))}</button>`).join('')}</div>
+      <span style="width:54px;font-size:34px;text-align:center" aria-hidden="true">📒</span>
+    </div>
+    <div class="album">${ISLANDS.map(isl=>{
+      const got = isl.items.filter(i=>p.st[key(isl,i)]).length;
+      return `<section><h2><span aria-hidden="true">${isl.e}</span>${isl.en}<small>${got} / ${isl.items.length}</small></h2>
+        <div class="stks">${isl.items.map(i=>{ const n = p.st[key(isl,i)]||0;
+          return `<button class="stk ${n?'':'no'}" data-isl="${isl.id}" data-id="${i.id}" aria-label="${n?i.en:'noch nicht gesammelt'}">${vis(isl,i)}${n>1?`<em>×${n}</em>`:''}</button>`; }).join('')}</div></section>`;
+    }).join('')}</div></div>`;
+  speakNow('Your stickers!');
+  bind('#map', ()=>showMap());
+  bind('.tab', el=>showAlbum(+el.dataset.i));
+  bind('.stk', el=>{
+    if(el.classList.contains('no')){ wobble(el); speakNow('Play to win this sticker!'); return; }
+    const isl = I[el.dataset.isl], it = isl.items.find(i=>i.id===el.dataset.id);
+    wobble(el); speakNow(it.en);
+  });
+}
+
+/* ---------- parents ---------- */
+function showParents(){
+  quitGame();
+  S.screen = 'parents';
+  const st = data.settings;
+  const voices = Speech.voices;
+  app.innerHTML = `<div class="screen">
+    <div class="bar"><button class="icon-btn" id="back" aria-label="Zurück">←</button><span class="sp"></span></div>
+    <div class="parents">
+      <h1>Elternbereich</h1>
+      <div class="pbox">
+        <h2>Stimme</h2>
+        ${voices.length ? `<div class="prow"><label for="voice">Englische Stimme</label><select id="voice">${voices.map(v=>`<option value="${v.voiceURI}" ${Speech.voice && v.voiceURI===Speech.voice.voiceURI?'selected':''}>${v.name} (${v.lang})</option>`).join('')}</select></div>`
+          : `<p class="warn">Keine englische Stimme gefunden. Bitte das Spiel in Chrome öffnen und unter Android › Einstellungen › Sprache › Text-in-Sprache Englisch installieren.</p>`}
+        <div class="prow"><label for="rate">Sprechtempo</label><input type="range" id="rate" min="0.6" max="1.1" step="0.05" value="${st.rate}"></div>
+        <div class="prow"><button class="pbtn" id="test">▶ Stimme testen</button></div>
+      </div>
+      <div class="pbox">
+        <h2>Aufgaben pro Runde</h2>
+        <div class="prow">${[4,6,8].map(n=>`<button class="pbtn ${st.roundLen===n?'on':''}" data-len="${n}">${n}</button>`).join('')}</div>
+        <p>Bei 5-Jährigen sind 4–6 Aufgaben ideal. Eine Runde dauert dann etwa 2–4 Minuten.</p>
+      </div>
+      <h2>Fortschritt</h2>
+      <p><span class="w new">grau</span> noch nicht geübt · <span class="w learn">gelb</span> übt noch · <span class="w ok">grün</span> sicher (mehrmals richtig beim ersten Versuch)</p>
+      ${data.profiles.length ? data.profiles.map(p=>{ const a = AV[p.av];
+        return `<section class="pbox">
+          <div class="pc-head"><span class="pc-av" style="--pc:${a.c}">${a.e}</span><div><b>${a.en}</b><small>${p.rounds||0} Runden · ${Object.keys(p.st).length} Sticker</small></div></div>
+          ${ISLANDS.map(isl=>{ const m = Math.round(mastery(p,isl)*100);
+            return `<div><div class="pc-isl-h"><span>${isl.e} ${isl.de}</span><span>${m} %</span></div><div class="bar-m"><i style="width:${m}%"></i></div>
+              <div class="words">${isl.items.map(i=>{ const w = wr(p,key(isl,i)); return `<span class="w ${w.s===0?'new':w.b>=3?'ok':'learn'}">${i.en}</span>`; }).join('')}</div></div>`; }).join('')}
+          <div class="prow" id="del-${p.id}"><button class="pbtn danger" data-del="${p.id}">Profil löschen</button></div>
+        </section>`; }).join('') : '<p>Noch keine Profile angelegt.</p>'}
+      <div class="pbox">
+        <h2>So lernt das Spiel mit</h2>
+        <ul>
+          <li>Alles läuft über Hören und Bilder. Lesen ist nicht nötig, Deutsch kommt im Spiel nicht vor.</li>
+          <li>Jedes Wort liegt in einem von sechs Lernfächern. Richtig beim ersten Versuch: ein Fach höher. Daneben: ein Fach zurück. Wörter in niedrigen Fächern kommen häufiger dran.</li>
+          <li>Neue Wörter werden erst freigeschaltet, wenn die bisherigen sitzen. Die Zahl der Auswahlbilder (2–4) passt sich an.</li>
+          <li>Nach zwei Fehlversuchen leuchtet die richtige Antwort auf. So endet keine Aufgabe mit Frust.</li>
+        </ul>
+      </div>
+      <div class="pbox">
+        <h2>Tipps</h2>
+        <ul>
+          <li>Spielt die ersten Male mit und sprecht laut mit. Kinder ahmen euch nach.</li>
+          <li>Lieber täglich 5–10 Minuten als selten lange.</li>
+          <li>Holt die Wörter in den Alltag: „Red or blue?“ beim Anziehen, Zählen auf der Treppe, „Two apples, please!“ beim Einkaufen.</li>
+          <li>Auf der Ballett-Insel sollen sich die Kinder wirklich bewegen. Wort plus Bewegung bleibt besser hängen.</li>
+          <li>Im Modus „Together“ spielen zwei Kinder abwechselnd auf ein gemeinsames Ziel hin, ohne Punkte gegeneinander.</li>
+        </ul>
+      </div>
+      <p>Der Fortschritt wird in diesem Browser gespeichert. Wenn du bei claude.ai angemeldet bist, wird er zusätzlich mit deinem Konto synchronisiert.</p>
+    </div></div>`;
+  bind('#back', ()=>showProfiles());
+  const v = document.getElementById('voice');
+  if(v) v.addEventListener('change', ()=>{ st.voice = v.value; Speech.pick(); save(); speakNow("Hello! I'm Kiki!"); });
+  const r = document.getElementById('rate');
+  r.addEventListener('change', ()=>{ st.rate = +r.value; save(); speakNow('Hello! Let\'s learn English!'); });
+  bind('#test', ()=>speakNow("Hello! I'm Kiki. Let's learn English!"));
+  bind('[data-len]', el=>{ st.roundLen = +el.dataset.len; save(); app.querySelectorAll('[data-len]').forEach(b=>b.classList.toggle('on', b===el)); });
+  bind('[data-del]', el=>{
+    const id = el.dataset.del, row = document.getElementById('del-'+id);
+    row.innerHTML = `<span style="font-family:system-ui;font-size:15px;font-weight:600">Wirklich löschen? Fortschritt und Sticker gehen verloren.</span><button class="pbtn danger" data-yes>Ja, löschen</button><button class="pbtn" data-no>Abbrechen</button>`;
+    row.querySelector('[data-yes]').addEventListener('click', ()=>{
+      data.profiles = data.profiles.filter(p=>p.id!==id);
+      S.players = S.players.filter(p=>p.id!==id); save(); showParents();
+    });
+    row.querySelector('[data-no]').addEventListener('click', ()=>showParents());
+  });
+}
+
+/* ---------- boot ---------- */
+Speech.init();
+showStart();
+cloudInit();
+})();
+</script>
