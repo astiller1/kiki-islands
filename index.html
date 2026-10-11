@@ -427,7 +427,7 @@ function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.flo
 
 /* ---------- storage (device + optional account sync) ---------- */
 const KEY = 'kiki-islands-v1';
-const blank = () => ({ v:1, updated:0, settings:{ rate:0.9, voice:'', roundLen:6 }, profiles:[] });
+const blank = () => ({ v:1, updated:0, settings:{ rate:0.9, voice:'', roundLen:6, music:true }, profiles:[] });
 function load(){
   try{ const s = localStorage.getItem(KEY); if(s){ const d = JSON.parse(s); if(d && d.v===1) return Object.assign(blank(), d); } }catch(e){}
   return blank();
@@ -546,8 +546,9 @@ const Speech = {
       u.pitch = o.pitch || 1.2;
       let done = false;
       const t = setTimeout(()=>fin(), 1800 + text.length*120/(u.rate||1));
-      function fin(){ if(done) return; done = true; clearTimeout(t); res(); }
+      function fin(){ if(done) return; done = true; clearTimeout(t); Music.talk(-1); res(); }
       u.onend = fin; u.onerror = fin;
+      Music.talk(1);
       const go = () => { try{ speechSynthesis.resume(); speechSynthesis.speak(u); }catch(e){ fin(); } };
       if(this.cut){ this.cut = false; setTimeout(go, 70); } else go();
     });
@@ -594,6 +595,165 @@ const Sfx = {
     return () => { try{ g.gain.setValueAtTime(0, c.currentTime); g.disconnect(); }catch(e){} };
   }
 };
+
+/* ---------- background music (same island band as Angler-Insel, synthesized, no files) ----------
+   Traditional Jamaican folk tunes from W. Jekyll, "Jamaican Song and Story" (1907, public domain),
+   notes = "midi:len ..." (len in quarter notes, r = rest). Harmony and band arrangement are generated. */
+const TUNES = [
+  { id:'linstead', fifths:2, meter:[6,8], notes:'66:0.5 69:0.5 69:0.5 69:0.5 66:0.5 67:0.5 69:0.5 71:1 71:0.5 69:0.5 69:0.5 r:0.5 67:1 66:0.5 64:0.5 66:0.5 67:0.5 69:1.5 r:1 r:0.5 66:2 67:0.5 66:0.5 64:1.5 62:1.5 61:1 62:0.5 64:0.5 66:0.5 64:0.5 62:1.5 r:0.5 r:0.5 66:0.5 69:0.5 69:0.5 69:0.5 66:0.5 67:0.5 69:0.5 71:1 71:0.5 69:0.5 69:0.5 r:0.5 67:1 66:0.5 64:0.5 66:0.5 67:0.5 69:1.5 r:1 r:0.5 66:2 67:0.5 66:0.5 64:0.5 66:0.5 64:0.5 62:0.5 r:0.5 r:0.5 61:1 62:0.5 64:0.5 66:0.5 64:0.5 62:1.5 r:0.5 r:0.5' },
+  { id:'hullo-honey', fifths:-1, meter:[2,4], notes:'72:0.25 72:0.25 72:0.5 74:0.5 72:0.5 69:0.25 69:0.25 69:0.5 70:0.5 69:0.5 67:0.25 67:0.25 65:0.5 69:0.5 65:0.5 60:1 65:0.5 69:0.5 72:0.5 72:0.25 72:0.25 74:0.5 72:0.5 69:0.5 69:0.25 65:0.25 70:0.5 69:0.5 67:0.25 67:0.25 65:0.5 69:0.5 70:0.5 72:1 r:1 72:0.25 72:0.25 72:0.5 74:0.5 72:0.5 69:0.25 69:0.25 69:0.5 70:0.5 69:0.5 67:0.25 67:0.25 65:0.5 69:0.5 65:0.5 60:1 65:0.5 69:0.5 72:0.25 72:0.25 72:0.25 72:0.25 74:0.25 74:0.25 72:0.5 69:0.5 69:0.25 69:0.25 70:0.5 69:0.5 67:0.25 67:0.25 65:0.5 69:0.5 67:0.5 65:1 r:1' },
+  { id:'birdyzeena', fifths:0, meter:[2,4], notes:'60:0.5 64:0.5 62:0.5 62:0.5 65:0.5 69:0.5 67:0.5 67:0.5 72:0.5 71:0.25 69:0.25 67:0.5 64:0.5 62:0.5 64:0.5 60:0.5 60:0.5 67:0.5 69:0.25 71:0.25 72:0.5 67:0.5 67:0.5 69:0.25 71:0.25 72:0.5 67:0.5 67:0.5 69:0.25 71:0.25 72:0.5 64:0.5 62:0.5 62:0.5 60:0.5 60:0.5' },
+  { id:'merry-go-round', fifths:2, meter:[6,8], notes:'69:1 69:0.5 69:0.5 69:0.5 69:0.5 67:0.5 69:0.5 71:0.5 69:1 66:0.5 69:0.5 67:0.5 66:0.5 64:0.5 62:0.5 64:0.5 66:1 62:0.5 r:1 r:0.5 69:1 69:0.5 69:0.5 69:0.5 69:0.5 67:0.5 69:0.5 71:0.5 69:1 66:0.5 69:0.5 67:0.5 66:0.5 64:0.5 62:0.5 64:0.5 66:1 62:0.5 r:1 r:0.5 69:1 69:0.5 69:1 69:0.5 69:1 69:0.5 69:1 69:0.5 69:1 69:0.5 67:1 66:0.5 64:1.5 r:1 r:0.5 67:1 67:0.5 67:1 67:0.5 67:1 67:0.5 67:1 67:0.5 67:1 67:0.5 66:1 64:0.5 62:1.5 r:1 r:0.5' },
+  { id:'aunty-jane', fifths:2, meter:[2,4], notes:'62:0.25 66:0.25 69:0.75 67:0.25 66:0.75 64:0.25 66:1 r:0.5 62:0.25 66:0.25 69:0.5 74:0.5 73:0.5 73:0.5 64:1 r:0.5 61:0.25 62:0.25 64:0.75 62:0.25 61:0.75 62:0.25 64:1 r:0.5 61:0.25 64:0.25 67:0.5 66:0.5 64:0.75 61:0.25 62:1 r:1 62:0.5 66:0.5 69:0.5 74:0.5 73:0.5 73:0.5 64:0.5 r:0.5 67:0.5 67:0.5 64:0.5 64:0.5 66:1 r:1 62:0.5 66:0.5 69:0.5 74:0.5 73:0.5 73:0.5 64:0.5 r:0.5 64:0.5 64:0.5 61:0.5 61:0.5 62:1 r:1' },
+  { id:'river', fifths:2, meter:[2,4], notes:'62:0.5 62:0.5 66:1 66:0.5 66:0.5 67:0.5 67:0.5 67:0.5 67:0.5 66:0.5 66:0.5 66:0.5 62:0.5 64:1 r:0.5 64:0.5 66:1 66:0.5 66:0.5 67:0.5 67:0.5 67:0.5 67:0.5 66:0.5 66:0.5 64:0.5 64:0.5 62:1 r:0.5 62:0.5 66:1 69:1 67:1 71:1 66:1 69:1 64:1 r:1 66:1 66:1 67:1 67:1 66:1 64:1 62:1' },
+];
+const Music = {
+  c: null, master: null, bus: null, noiseBuf: null, plucks: new Map(), tunes: null,
+  next: 0, lastId: '', timer: null, talking: 0, dancing: false,
+  levels: { melody: .32, strum: .2, bass: .12, shaker: .035 },
+  tempo: { '2/4': 116, '6/8': 138 },
+  on(){ return data.settings.music !== false; },
+  start(){
+    const c = Sfx.c; if(!c || this.c) return;
+    this.c = c;
+    this.tunes = TUNES.map(parseTune);
+    this.master = c.createGain(); this.master.gain.value = 0;
+    const comp = c.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 2.5;
+    this.master.connect(comp).connect(c.destination);
+    this.bus = c.createGain(); this.bus.connect(this.master);
+    const len = Math.floor(c.sampleRate*1.6), ir = c.createBuffer(2, len, c.sampleRate);
+    for(let ch=0; ch<2; ch++){ const d = ir.getChannelData(ch); for(let i=0;i<len;i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/len, 3.5); }
+    const verb = c.createConvolver(), wet = c.createGain(); verb.buffer = ir; wet.gain.value = .18;
+    this.bus.connect(verb).connect(wet).connect(this.master);
+    this.noiseBuf = c.createBuffer(1, c.sampleRate, c.sampleRate);
+    const nd = this.noiseBuf.getChannelData(0); for(let i=0;i<nd.length;i++) nd[i] = Math.random()*2-1;
+    this.next = c.currentTime + .3;
+    this.tick(); this.timer = setInterval(()=>this.tick(), 500);
+    this.level();
+  },
+  /* quiet in the background, even quieter while Kiki speaks, loud while dancing */
+  level(){
+    if(!this.master) return;
+    const v = this.dancing ? .7 : !this.on() ? 0 : this.talking ? .1 : .3;
+    const t = this.c.currentTime;
+    this.master.gain.cancelScheduledValues(t);
+    this.master.gain.setTargetAtTime(v, t, this.talking && !this.dancing ? .08 : .4);
+  },
+  talk(d){ this.talking = Math.max(0, this.talking + d); this.level(); },
+  dance(){ this.dancing = true; this.level(); return () => { this.dancing = false; this.level(); }; },
+  tick(){
+    if(!this.c || this.c.state !== 'running') return;
+    if(this.next < this.c.currentTime) this.next = this.c.currentTime + .1;
+    while(this.next < this.c.currentTime + 1.5) this.next = this.playTune(this.pick(), this.next);
+  },
+  pick(){
+    const opts = this.tunes.filter(t=>t.id !== this.lastId), p = rnd(opts.length ? opts : this.tunes);
+    this.lastId = p.id; return p;
+  },
+  /* one tune twice (2nd pass an octave higher), then two bars of chords leading into the next one */
+  playTune(p, t0){
+    const q = 60/(this.tempo[p.meter.join('/')] || 120), L = this.levels;
+    let t = t0 - p.start*q;
+    for(let r=0; r<2; r++){
+      for(const n of p.notes) this.pan(t + n.t*q, n.midi + (r===1 && n.midi<72 ? 12 : 0), n.len*q, L.melody);
+      this.band(p, t, q, p.chords, p.length);
+      t += p.length*q;
+    }
+    const tonic = p.chords.find(c=>c.degree===0) || p.chords[0], dom = p.chords.find(c=>c.degree===4) || tonic;
+    this.band(p, t, q, [{...tonic, t:0}, {...dom, t:p.bar}], 2*p.bar);
+    return t + 2*p.bar*q;
+  },
+  /* 2/4 calypso: bass on 1 and 2, strums off-beat; 6/8: bass on 1 and 4, strums on the 3rd and 6th eighth */
+  band(p, t, q, chords, length){
+    const L = this.levels, six = p.meter[0]===6, half = six ? 1.5 : 1;
+    for(let b0=0; b0<length-.01; b0+=p.bar){
+      const bar = t + b0*q, at = off => chordAt(chords, b0+off);
+      this.bass(bar, at(0).bass, L.bass);
+      this.bass(bar + half*q, at(half).bass + (at(half).degree===at(0).degree ? 7 : 0), L.bass*.8);
+      for(const e of six ? [1, 2.5] : [.5, 1.5]) this.strum(bar + e*q, at(e).notes, L.strum);
+      for(let e=0; e<(six ? 6 : 4); e++) this.shaker(bar + e*.5*q, L.shaker*(e % (six ? 3 : 2) === 0 ? 1.2 : .8));
+    }
+  },
+  /* Karplus-Strong plucked string (ukulele, bass), cached per pitch */
+  pluck(midi, bright){
+    const k = midi+'|'+bright; let buf = this.plucks.get(k); if(buf) return buf;
+    const sr = this.c.sampleRate, len = Math.floor(sr*1.4); buf = this.c.createBuffer(1, len, sr);
+    const out = buf.getChannelData(0), period = Math.max(2, Math.round(sr/mtof(midi))), ring = new Float32Array(period);
+    let prev = 0; for(let i=0;i<period;i++){ prev += bright*((Math.random()*2-1) - prev); ring[i] = prev; }
+    for(let i=0, j=0; i<len; i++){ const a = ring[j], b = ring[(j+1)%period]; out[i] = a; ring[j] = .5*(a+b)*.996; j = (j+1)%period; }
+    this.plucks.set(k, buf); return buf;
+  },
+  play(buf, t, vel, dur){
+    const s = this.c.createBufferSource(), g = this.c.createGain(); s.buffer = buf;
+    g.gain.setValueAtTime(vel, t); g.gain.setTargetAtTime(0, t+dur, .06);
+    s.connect(g).connect(this.bus); s.start(t); s.stop(t+dur+.4);
+  },
+  strum(t, notes, vel){ notes.forEach((m,i)=>this.play(this.pluck(m,.5), t+i*.012, vel*(i?.8:1), .22)); },
+  bass(t, midi, vel){ this.play(this.pluck(midi,.25), t, vel, .35); },
+  env(t, peak, a, d){
+    const g = this.c.createGain();
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(Math.max(.0002,peak),t+a); g.gain.exponentialRampToValueAtTime(.0001,t+a+d);
+    return g;
+  },
+  /* steel pan: harmonic partials with a bright, quickly fading attack */
+  pan(t, midi, len, vel){
+    const f = mtof(midi), dur = Math.min(1.4, Math.max(.45, len+.35));
+    for(const [mult, amp, dec] of [[1,1,dur],[2,.42,dur*.7],[3,.16,.35],[4,.07,.15]]){
+      const g = this.env(t, vel*amp, .005, dec), o = this.c.createOscillator();
+      g.connect(this.bus); o.frequency.value = f*mult; o.connect(g); o.start(t); o.stop(t+dec+.05);
+    }
+  },
+  shaker(t, vel){
+    const s = this.c.createBufferSource(), hp = this.c.createBiquadFilter(), g = this.env(t, vel, .004, .045);
+    s.buffer = this.noiseBuf; hp.type = 'highpass'; hp.frequency.value = 7000;
+    s.connect(hp).connect(g).connect(this.bus); s.start(t, Math.random()*.5); s.stop(t+.08);
+  }
+};
+const mtof = m => 440*Math.pow(2, (m-69)/12);
+const MAJOR = [0,2,4,5,7,9,11];
+const chordPcs = (tonic, deg) => Array.from({length: deg===4 ? 4 : 3}, (_,i)=>(tonic + MAJOR[(deg+2*i)%7]) % 12);
+function parseTune(tune){
+  const bar = tune.meter[0]*4/tune.meter[1];
+  const raw = tune.notes.split(/\s+/).map(tok=>{ const [m,l] = tok.split(':'); return { midi: m==='r' ? null : +m, len: +l }; });
+  const rem = +(raw.reduce((s,n)=>s+n.len, 0) % bar).toFixed(3);
+  const start = rem>.01 && rem<bar-.01 ? -rem : 0;   // incomplete first bar = pickup
+  const notes = []; let t = start;
+  for(const n of raw){ if(n.midi!==null) notes.push({ t, midi:n.midi, len:n.len }); t += n.len; }
+  const length = Math.ceil((t-.01)/bar)*bar, tonic = ((tune.fifths*7)%12+12)%12;
+  const unit = tune.meter[1]===8 && tune.meter[0]%3===0 ? 1.5 : 4/tune.meter[1];
+  return { id:tune.id, meter:tune.meter, notes, bar, length, start, chords: harmonize(notes, bar, unit, length, tonic) };
+}
+/* diatonic chords that cover the melody (I, V7, IV, vi, ii), calm harmonic rhythm, tonic at the end */
+function harmonize(notes, bar, unit, length, tonic){
+  const units = Math.round(length/unit), degrees = [];
+  for(let u=0; u<units; u++){
+    const t0 = u*unit;
+    if(u===units-1 || (u >= units-Math.round(bar/unit) && (u+1)*unit >= length-.01)){ degrees.push(0); continue; }
+    const prev = degrees[degrees.length-1]; let best = -Infinity, pick = 0;
+    for(const [d, pref] of [[0,1],[4,.95],[3,.9],[5,.7],[1,.65]]){
+      const pcs = chordPcs(tonic, d); let score = 0;
+      for(const n of notes){
+        const s = Math.max(n.t, t0), e = Math.min(n.t+n.len, t0+unit); if(e<=s) continue;
+        score += (pcs.includes(n.midi%12) ? 1 : -.45)*(e-s)*(n.t<=t0+.01 ? 2.2 : 1);
+      }
+      score *= pref;
+      if(prev!==undefined && d!==prev) score -= .25*unit;
+      if(prev===undefined && d!==0) score -= .5;
+      if(score>best){ best = score; pick = d; }
+    }
+    degrees.push(pick);
+  }
+  return degrees.map((degree,u)=>{
+    const pcs = chordPcs(tonic, degree);
+    const voiced = pcs.map(pc=>{ let m = 55 + ((pc - 55%12 + 12) % 12); if(m>69) m -= 12; return m; }).sort((a,b)=>a-b);
+    return { t:u*unit, degree, notes:voiced, bass: 36 + pcs[0] + (pcs[0]<4 ? 12 : 0) };
+  });
+}
+function chordAt(chords, t){ let c = chords[0]; for(const x of chords){ if(x.t <= t+.001) c = x; else break; } return c; }
+document.addEventListener('visibilitychange', ()=>{
+  const c = Sfx.c; if(!c) return;
+  try{ if(document.hidden) c.suspend(); else c.resume().then(()=>Music.tick()); }catch(e){}
+});
 
 /* ---------- visuals ---------- */
 function vis(isl,item){
@@ -650,7 +810,7 @@ function showStart(){
     <div id="warn"></div>
   </div>`;
   document.getElementById('play').addEventListener('click', async ()=>{
-    Sfx.init(); Sfx.ding(); keepAwake();
+    Sfx.init(); Sfx.ding(); Music.start(); keepAwake();
     Speech.say("Hello! I'm Kiki!");
     showProfiles(true);
   });
@@ -1138,7 +1298,7 @@ async function danceGame(G){
     icon.textContent = c.e; icon.className = 'dance-icon pop'; G.setPrompt(c.en);
     await speakNow(c.en); if(!G.alive()) return;
     icon.className = `dance-icon go a-${c.a}`; dance.classList.add('music');
-    const stop = Sfx.music(4); G.cleanup(stop);
+    const stop = Music.c ? Music.dance() : Sfx.music(4); G.cleanup(stop);
     await sleep(4200); if(!G.alive()) return;
     stop(); dance.classList.remove('music'); icon.className = 'dance-icon';
     await speakNow('Stop!'); if(!G.alive()) return;
@@ -1226,6 +1386,11 @@ function showParents(){
         <div class="prow">${[4,6,8].map(n=>`<button class="pbtn ${st.roundLen===n?'on':''}" data-len="${n}">${n}</button>`).join('')}</div>
         <p>Bei 5-Jährigen sind 4–6 Aufgaben ideal. Eine Runde dauert dann etwa 2–4 Minuten.</p>
       </div>
+      <div class="pbox">
+        <h2>Hintergrundmusik</h2>
+        <div class="prow">${[[true,'An'],[false,'Aus']].map(([on,l])=>`<button class="pbtn ${(st.music!==false)===on?'on':''}" data-music="${on?1:0}">${l}</button>`).join('')}</div>
+        <p>Leise Inselmusik mit Steelpan und Ukulele. Während Kiki spricht, wird sie noch leiser. Beim Tanzen auf der Ballett-Insel spielt sie immer. Melodien: traditionelle jamaikanische Volkslieder aus W. Jekyll, „Jamaican Song and Story“ (1907), gemeinfrei.</p>
+      </div>
       <h2>Fortschritt</h2>
       <p><span class="w new">grau</span> noch nicht geübt · <span class="w learn">gelb</span> übt noch · <span class="w ok">grün</span> sicher (mehrmals richtig beim ersten Versuch)</p>
       ${data.profiles.length ? data.profiles.map(p=>{ const a = AV[p.av];
@@ -1264,6 +1429,7 @@ function showParents(){
   r.addEventListener('change', ()=>{ st.rate = +r.value; save(); speakNow('Hello! Let\'s learn English!'); });
   bind('#test', ()=>speakNow("Hello! I'm Kiki. Let's learn English!"));
   bind('[data-len]', el=>{ st.roundLen = +el.dataset.len; save(); app.querySelectorAll('[data-len]').forEach(b=>b.classList.toggle('on', b===el)); });
+  bind('[data-music]', el=>{ st.music = el.dataset.music==='1'; save(); Music.level(); app.querySelectorAll('[data-music]').forEach(b=>b.classList.toggle('on', b===el)); });
   bind('[data-del]', el=>{
     const id = el.dataset.del, row = document.getElementById('del-'+id);
     row.innerHTML = `<span style="font-family:system-ui;font-size:15px;font-weight:600">Wirklich löschen? Fortschritt und Sticker gehen verloren.</span><button class="pbtn danger" data-yes>Ja, löschen</button><button class="pbtn" data-no>Abbrechen</button>`;
